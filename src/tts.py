@@ -1,18 +1,32 @@
-from pipecat.services.ai_services import TTSService
-from pipecat.frames.frames import AudioRawFrame
-import subprocess, asyncio
+import sys, subprocess
 
-PIPER = "./tools/piper"
-VOICE = "./tools/piper"
+from typing import AsyncGenerator
+
+from pipecat.frames.frames import Frame, TTSAudioRawFrame, TTSStartedFrame, TTSStoppedFrame
+from pipecat.services.tts_service import TTSService
 
 class LocalPiperTTSService(TTSService):
-    def __init__(self, device="cpu", **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, *, piper_path: str, voice_path: str, device: str="cpu", sample_rate: int=22050, **kwargs):
+        super().__init__(sample_rate=sample_rate, **kwargs)
+        self._piper_path = piper_path
+        self._voice_path = voice_path
         self._device = device
+        self._sample_rate = sample_rate
 
-    async def run_tts(self, text: str):
-        process = await asyncio.create_subprocess_exec(PIPER, "--model", VOICE, "--output-raw",
-            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    async def run_tts(self, text: str) -> AsyncGenerator[Frame, None]:
+        yield TTSStartedFrame()
 
-        stdout, _ = await process.communicate(input=text.encode('utf-8'))
-        yield AudioRawFrame(audio=stdout, sample_rate=22050, num_channels=1)
+        cmd = [self._piper_path, "--model", self._voice_path, "--output_raw"]
+        
+        if self._device == "cuda":
+            cmd.append("--use_cuda")
+
+        process = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=sys.stderr)
+        out, _ = process.communicate(input=text.encode("utf-8"))
+        chunk_size = 4096 
+        for i in range(0, len(out), chunk_size):
+            chunk = out[i : i + chunk_size]
+            if chunk:
+                yield TTSAudioRawFrame(audio=chunk, sample_rate=self._sample_rate, num_channels=1)
+
+        yield TTSStoppedFrame()
