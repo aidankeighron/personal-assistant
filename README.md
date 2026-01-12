@@ -2,8 +2,8 @@
 
 ## Python
 
-`.venv\Scripts\activate.bat` CMD
-`.venv\Scripts\activate.ps1` PowerShell
+`uv run ./server/main.py`
+`uv add <>`
 
 ## Rust
 
