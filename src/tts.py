@@ -1,9 +1,7 @@
-import sys, subprocess
-
 from typing import AsyncGenerator
-
 from pipecat.frames.frames import Frame, TTSAudioRawFrame, TTSStartedFrame, TTSStoppedFrame
 from pipecat.services.tts_service import TTSService
+import sys, subprocess, asyncio
 
 class LocalPiperTTSService(TTSService):
     def __init__(self, *, piper_path: str, voice_path: str, device: str="cpu", sample_rate: int=22050, **kwargs):
@@ -21,8 +19,8 @@ class LocalPiperTTSService(TTSService):
         if self._device == "cuda":
             cmd.append("--use_cuda")
 
-        process = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=sys.stderr)
-        out, _ = process.communicate(input=text.encode("utf-8"))
+        process = await asyncio.create_subprocess_exec(*cmd, stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE, stderr=sys.stderr)
+        out, _ = await process.communicate(input=text.encode("utf-8"))
         chunk_size = 4096 
         for i in range(0, len(out), chunk_size):
             chunk = out[i : i + chunk_size]
