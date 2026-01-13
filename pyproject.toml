@@ -8,5 +8,6 @@ dependencies = [
     "faster-whisper>=1.2.1",
     "loguru>=0.7.3",
     "pipecat-ai[local,silero]>=0.0.98",
+    "sounddevice>=0.5.3",
     "websockets>=16.0",
 ]

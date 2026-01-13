@@ -29,7 +29,7 @@ async def main():
     # Mic Input | Speaker Output
     transport = LocalAudioTransport(
         params=LocalAudioTransportParams(audio_in_sample_rate=16000, audio_out_sample_rate=16000, 
-                                         vad_analyzer=vad, audio_in_index=1, audio_out_index=3)
+                                         vad_analyzer=vad, audio_in_index=1, audio_out_index=7)
     )
     # Speech -> Text
     stt = WhisperSTTService(model=Model.DISTIL_MEDIUM_EN, device="cpu", compute_type="int8")
