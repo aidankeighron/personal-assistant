@@ -1,7 +1,3 @@
-"""
-Minimal working Pipecat setup with FAST custom Whisper STT.
-Optimized for speed with smaller model and beam_size=1.
-"""
 import asyncio
 import numpy as np
 from faster_whisper import WhisperModel
@@ -19,22 +15,9 @@ from pipecat.frames.frames import (
 from pipecat.utils.time import time_now_iso8601
 
 class FastWhisperSTT(FrameProcessor):
-    """Fast Whisper STT with optimized settings."""
-    
     def __init__(self):
         super().__init__()
-        print("Loading Whisper model (tiny for speed)...")
-        # Options for speed vs quality:
-        # - "tiny.en" = fastest, lower quality
-        # - "base.en" = good balance
-        # - "small.en" = better quality, slower
-        # - "distil-medium.en" = good quality, moderate speed
-        self._model = WhisperModel(
-            "tiny.en",  # Fastest model
-            device="cpu",
-            compute_type="int8"  # Quantized for speed
-        )
-        print("Whisper loaded!")
+        self._model = WhisperModel("tiny.en", device="cpu", compute_type="int8")
         
         self._sample_rate = 16000
         self._audio_buffer = bytearray()
@@ -76,39 +59,19 @@ class FastWhisperSTT(FrameProcessor):
             await self.push_frame(frame, direction)
     
     async def _transcribe(self, audio_bytes: bytes) -> str:
-        """Fast transcription with optimized settings."""
         audio_np = np.frombuffer(audio_bytes, dtype=np.int16).astype(np.float32) / 32768.0
         
-        # Fast transcription settings
-        segments, _ = await asyncio.to_thread(
-            self._model.transcribe,
-            audio_np,
-            language="en",
-            beam_size=1,           # Fastest (greedy decoding)
-            best_of=1,             # No sampling
-            temperature=0.0,       # Deterministic
-            condition_on_previous_text=False,  # Faster
-            vad_filter=True,       # Skip silence
-        )
+        segments, _ = await asyncio.to_thread(self._model.transcribe, audio_np, language="en", beam_size=1, best_of=1,
+            temperature=0.0, condition_on_previous_text=False, vad_filter=True)
         
         text = "".join(segment.text for segment in segments)
         return text.strip()
 
 
 async def main():
-    print("=" * 50)
-    print("FAST PIPECAT VOICE ASSISTANT")
-    print("=" * 50)
-    
     AUDIO_IN_INDEX = 1
-    
-    # Faster VAD settings
-    vad = SileroVADAnalyzer(params=VADParams(
-        start_secs=0.1,    # Faster to start
-        stop_secs=0.5,     # Faster to stop
-        confidence=0.6,
-        min_volume=0.01
-    ))
+
+    vad = SileroVADAnalyzer(params=VADParams(start_secs=0.1, stop_secs=0.5, confidence=0.6, min_volume=0.01))
     
     transport = LocalAudioTransport(
         params=LocalAudioTransportParams(
@@ -130,8 +93,6 @@ async def main():
     
     task = PipelineTask(pipeline)
     runner = PipelineRunner()
-    
-    print("\nListening... (Ctrl+C to exit)\n")
     
     try:
         await runner.run(task)
