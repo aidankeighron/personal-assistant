@@ -1,10 +1,8 @@
 """
-Minimal working Pipecat setup with custom Whisper STT.
-Bypasses Pipecat's WhisperSTTService which appears to have issues.
+Minimal working Pipecat setup with FAST custom Whisper STT.
+Optimized for speed with smaller model and beam_size=1.
 """
 import asyncio
-import io
-import wave
 import numpy as np
 from faster_whisper import WhisperModel
 
@@ -15,18 +13,27 @@ from pipecat.transports.local.audio import LocalAudioTransport, LocalAudioTransp
 from pipecat.audio.vad.silero import SileroVADAnalyzer, VADParams
 from pipecat.processors.frame_processor import FrameProcessor, FrameDirection
 from pipecat.frames.frames import (
-    Frame, AudioRawFrame, TextFrame, TranscriptionFrame,
+    Frame, AudioRawFrame, TranscriptionFrame,
     UserStartedSpeakingFrame, UserStoppedSpeakingFrame, StartFrame
 )
 from pipecat.utils.time import time_now_iso8601
 
-class CustomWhisperSTT(FrameProcessor):
-    """Custom Whisper STT that actually works."""
+class FastWhisperSTT(FrameProcessor):
+    """Fast Whisper STT with optimized settings."""
     
-    def __init__(self, model_name: str = "distil-medium.en"):
+    def __init__(self):
         super().__init__()
-        print("Loading Whisper model...")
-        self._model = WhisperModel(model_name, device="cpu", compute_type="int8")
+        print("Loading Whisper model (tiny for speed)...")
+        # Options for speed vs quality:
+        # - "tiny.en" = fastest, lower quality
+        # - "base.en" = good balance
+        # - "small.en" = better quality, slower
+        # - "distil-medium.en" = good quality, moderate speed
+        self._model = WhisperModel(
+            "tiny.en",  # Fastest model
+            device="cpu",
+            compute_type="int8"  # Quantized for speed
+        )
         print("Whisper loaded!")
         
         self._sample_rate = 16000
@@ -41,28 +48,22 @@ class CustomWhisperSTT(FrameProcessor):
             await self.push_frame(frame, direction)
         
         elif isinstance(frame, AudioRawFrame):
-            # Buffer audio while user is speaking
             if self._user_speaking:
                 self._audio_buffer += frame.audio
             await self.push_frame(frame, direction)
         
         elif isinstance(frame, UserStartedSpeakingFrame):
             self._user_speaking = True
-            self._audio_buffer.clear()  # Start fresh
-            print("[STT] Started listening...")
+            self._audio_buffer.clear()
             await self.push_frame(frame, direction)
         
         elif isinstance(frame, UserStoppedSpeakingFrame):
             self._user_speaking = False
-            print(f"[STT] Stopped listening. Buffer size: {len(self._audio_buffer)} bytes")
             
             if len(self._audio_buffer) > 0:
-                # Transcribe the buffered audio
                 text = await self._transcribe(bytes(self._audio_buffer))
                 if text:
-                    print(f"\n{'='*50}")
-                    print(f"TRANSCRIPTION: {text}")
-                    print(f"{'='*50}\n")
+                    print(f"[YOU]: {text}")
                     await self.push_frame(
                         TranscriptionFrame(text, "", time_now_iso8601()),
                         direction
@@ -75,41 +76,37 @@ class CustomWhisperSTT(FrameProcessor):
             await self.push_frame(frame, direction)
     
     async def _transcribe(self, audio_bytes: bytes) -> str:
-        """Transcribe audio bytes using Whisper."""
-        # Convert bytes to float32 numpy array
+        """Fast transcription with optimized settings."""
         audio_np = np.frombuffer(audio_bytes, dtype=np.int16).astype(np.float32) / 32768.0
         
-        print(f"[STT] Transcribing {len(audio_np)} samples ({len(audio_np)/self._sample_rate:.2f}s)...")
-        
-        # Run transcription in thread pool to avoid blocking
-        segments, info = await asyncio.to_thread(
+        # Fast transcription settings
+        segments, _ = await asyncio.to_thread(
             self._model.transcribe,
             audio_np,
             language="en",
-            beam_size=5
+            beam_size=1,           # Fastest (greedy decoding)
+            best_of=1,             # No sampling
+            temperature=0.0,       # Deterministic
+            condition_on_previous_text=False,  # Faster
+            vad_filter=True,       # Skip silence
         )
         
-        # Collect all text
-        text = ""
-        for segment in segments:
-            if segment.no_speech_prob < 0.4:
-                text += segment.text
-        
+        text = "".join(segment.text for segment in segments)
         return text.strip()
 
 
 async def main():
     print("=" * 50)
-    print("PIPECAT WITH CUSTOM WHISPER STT")
+    print("FAST PIPECAT VOICE ASSISTANT")
     print("=" * 50)
     
     AUDIO_IN_INDEX = 1
-    print(f"Using audio input index: {AUDIO_IN_INDEX}\n")
     
+    # Faster VAD settings
     vad = SileroVADAnalyzer(params=VADParams(
-        start_secs=0.2,
-        stop_secs=0.8,
-        confidence=0.5,
+        start_secs=0.1,    # Faster to start
+        stop_secs=0.5,     # Faster to stop
+        confidence=0.6,
         min_volume=0.01
     ))
     
@@ -124,7 +121,7 @@ async def main():
         )
     )
     
-    stt = CustomWhisperSTT()
+    stt = FastWhisperSTT()
     
     pipeline = Pipeline([
         transport.input(),
@@ -134,14 +131,12 @@ async def main():
     task = PipelineTask(pipeline)
     runner = PipelineRunner()
     
-    print("\n" + "=" * 50)
-    print("LISTENING... Speak clearly, then pause.")
-    print("=" * 50 + "\n")
+    print("\nListening... (Ctrl+C to exit)\n")
     
     try:
         await runner.run(task)
     except KeyboardInterrupt:
-        print("\nShutting down...")
+        print("\nGoodbye!")
         await task.cancel()
 
 if __name__ == "__main__":
