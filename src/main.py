@@ -28,8 +28,15 @@ async def main():
     vad = SileroVADAnalyzer(params=VADParams(start_secs=0.1, stop_secs=0.4, confidence=0.6, min_volume=0.03))
     # Mic Input | Speaker Output
     transport = LocalAudioTransport(
-        params=LocalAudioTransportParams(audio_in_sample_rate=16000, audio_out_sample_rate=16000, 
-                                         vad_analyzer=vad, audio_in_index=1, audio_out_index=7)
+        params=LocalAudioTransportParams(
+            audio_in_enabled=True,
+            audio_out_enabled=True,
+            audio_in_sample_rate=16000, 
+            audio_out_sample_rate=16000, 
+            vad_analyzer=vad, 
+            audio_in_index=1, 
+            audio_out_index=7
+        )
     )
     # Speech -> Text
     stt = WhisperSTTService(model=Model.DISTIL_MEDIUM_EN, device="cpu", compute_type="int8")
