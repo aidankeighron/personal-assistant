@@ -1,6 +1,9 @@
 import asyncio
 import sys
 import time
+import subprocess
+import urllib.request
+import urllib.error
 from loguru import logger
 
 logger.remove()
@@ -120,5 +123,35 @@ async def main():
     except KeyboardInterrupt:
         await task.cancel()
 
+def ensure_ollama_running():
+    url = "http://localhost:11434/"
+    try:
+        urllib.request.urlopen(url)
+        print("Ollama is already running.")
+        return
+    except (urllib.error.URLError, ConnectionRefusedError):
+        print("Ollama is not running. Starting it...")
+        try:
+            # shell=True to effectively find 'ollama' in PATH
+            subprocess.Popen(["ollama", "serve"], shell=True)
+        except FileNotFoundError:
+            print("Error: 'ollama' command not found. Please ensure Ollama is installed and in your PATH.")
+            return
+
+        print("Waiting for Ollama to become ready...", end="", flush=True)
+        retries = 20
+        while retries > 0:
+            try:
+                urllib.request.urlopen(url)
+                print("\nOllama is ready!")
+                return
+            except (urllib.error.URLError, ConnectionRefusedError):
+                time.sleep(1)
+                print(".", end="", flush=True)
+                retries -= 1
+        
+        print("\nWarning: Timed out waiting for Ollama to start. It may not be working correctly.")
+
 if __name__ == "__main__":
+    ensure_ollama_running()
     asyncio.run(main())
