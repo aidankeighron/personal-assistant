@@ -1,57 +1,114 @@
+"""
+Minimal working Pipecat setup with custom Whisper STT.
+Bypasses Pipecat's WhisperSTTService which appears to have issues.
+"""
 import asyncio
+import io
+import wave
+import numpy as np
+from faster_whisper import WhisperModel
 
 from pipecat.pipeline.pipeline import Pipeline
 from pipecat.pipeline.task import PipelineTask
 from pipecat.pipeline.runner import PipelineRunner
 from pipecat.transports.local.audio import LocalAudioTransport, LocalAudioTransportParams
-from pipecat.services.whisper.stt import WhisperSTTService, Model
 from pipecat.audio.vad.silero import SileroVADAnalyzer, VADParams
-from pipecat.processors.frame_processor import FrameProcessor
-from pipecat.frames.frames import Frame, AudioRawFrame, TranscriptionFrame, InterimTranscriptionFrame
+from pipecat.processors.frame_processor import FrameProcessor, FrameDirection
+from pipecat.frames.frames import (
+    Frame, AudioRawFrame, TextFrame, TranscriptionFrame,
+    UserStartedSpeakingFrame, UserStoppedSpeakingFrame, StartFrame
+)
+from pipecat.utils.time import time_now_iso8601
 
-class DebugLogger(FrameProcessor):
-    """Logs audio and transcription frames."""
+class CustomWhisperSTT(FrameProcessor):
+    """Custom Whisper STT that actually works."""
     
-    def __init__(self, label: str):
+    def __init__(self, model_name: str = "distil-medium.en"):
         super().__init__()
-        self._label = label
-        self._audio_frame_count = 0
+        print("Loading Whisper model...")
+        self._model = WhisperModel(model_name, device="cpu", compute_type="int8")
+        print("Whisper loaded!")
+        
+        self._sample_rate = 16000
+        self._audio_buffer = bytearray()
+        self._user_speaking = False
     
-    async def process_frame(self, frame: Frame, direction):
-        # Log transcriptions
-        if isinstance(frame, TranscriptionFrame):
-            print(f"\n[{self._label}] TRANSCRIPTION: {frame.text}")
-        elif isinstance(frame, InterimTranscriptionFrame):
-            print(f"[{self._label}] (interim): {frame.text}", end="\r")
+    async def process_frame(self, frame: Frame, direction: FrameDirection):
+        await super().process_frame(frame, direction)
+        
+        if isinstance(frame, StartFrame):
+            self._sample_rate = frame.audio_in_sample_rate or 16000
+            await self.push_frame(frame, direction)
+        
         elif isinstance(frame, AudioRawFrame):
-            self._audio_frame_count += 1
-            if self._audio_frame_count % 100 == 0:
-                print(f"[{self._label}] Audio frames: {self._audio_frame_count}", end="\r")
+            # Buffer audio while user is speaking
+            if self._user_speaking:
+                self._audio_buffer += frame.audio
+            await self.push_frame(frame, direction)
         
-        # IMPORTANT: Always call parent to properly handle frames
-        await super().process_frame(frame, direction)
-
-class VADEventLogger(FrameProcessor):
-    """Logs VAD events."""
+        elif isinstance(frame, UserStartedSpeakingFrame):
+            self._user_speaking = True
+            self._audio_buffer.clear()  # Start fresh
+            print("[STT] Started listening...")
+            await self.push_frame(frame, direction)
+        
+        elif isinstance(frame, UserStoppedSpeakingFrame):
+            self._user_speaking = False
+            print(f"[STT] Stopped listening. Buffer size: {len(self._audio_buffer)} bytes")
+            
+            if len(self._audio_buffer) > 0:
+                # Transcribe the buffered audio
+                text = await self._transcribe(bytes(self._audio_buffer))
+                if text:
+                    print(f"\n{'='*50}")
+                    print(f"TRANSCRIPTION: {text}")
+                    print(f"{'='*50}\n")
+                    await self.push_frame(
+                        TranscriptionFrame(text, "", time_now_iso8601()),
+                        direction
+                    )
+            
+            self._audio_buffer.clear()
+            await self.push_frame(frame, direction)
+        
+        else:
+            await self.push_frame(frame, direction)
     
-    async def process_frame(self, frame: Frame, direction):
-        frame_name = type(frame).__name__
-        if "UserStarted" in frame_name or "UserStopped" in frame_name:
-            print(f"\n[VAD] >>> {frame_name} <<<")
+    async def _transcribe(self, audio_bytes: bytes) -> str:
+        """Transcribe audio bytes using Whisper."""
+        # Convert bytes to float32 numpy array
+        audio_np = np.frombuffer(audio_bytes, dtype=np.int16).astype(np.float32) / 32768.0
         
-        await super().process_frame(frame, direction)
+        print(f"[STT] Transcribing {len(audio_np)} samples ({len(audio_np)/self._sample_rate:.2f}s)...")
+        
+        # Run transcription in thread pool to avoid blocking
+        segments, info = await asyncio.to_thread(
+            self._model.transcribe,
+            audio_np,
+            language="en",
+            beam_size=5
+        )
+        
+        # Collect all text
+        text = ""
+        for segment in segments:
+            if segment.no_speech_prob < 0.4:
+                text += segment.text
+        
+        return text.strip()
+
 
 async def main():
     print("=" * 50)
-    print("MINIMAL PIPECAT AUDIO DEBUG")
+    print("PIPECAT WITH CUSTOM WHISPER STT")
     print("=" * 50)
     
-    AUDIO_IN_INDEX = 1  # Logitech PRO X
+    AUDIO_IN_INDEX = 1
     print(f"Using audio input index: {AUDIO_IN_INDEX}\n")
     
     vad = SileroVADAnalyzer(params=VADParams(
-        start_secs=0.1,
-        stop_secs=0.5,
+        start_secs=0.2,
+        stop_secs=0.8,
         confidence=0.5,
         min_volume=0.01
     ))
@@ -63,32 +120,22 @@ async def main():
             audio_in_sample_rate=16000,
             audio_out_sample_rate=16000,
             vad_analyzer=vad,
-            vad_audio_passthrough=True,
             audio_in_index=AUDIO_IN_INDEX,
         )
     )
     
-    print("Loading Whisper model...")
-    stt = WhisperSTTService(
-        model=Model.DISTIL_MEDIUM_EN,
-        device="cpu",
-        compute_type="int8"
-    )
-    print("Whisper loaded!\n")
+    stt = CustomWhisperSTT()
     
     pipeline = Pipeline([
         transport.input(),
-        DebugLogger("AUDIO"),
-        VADEventLogger(),
         stt,
-        DebugLogger("STT"),
     ])
     
     task = PipelineTask(pipeline)
     runner = PipelineRunner()
     
-    print("=" * 50)
-    print("LISTENING... Speak into your microphone!")
+    print("\n" + "=" * 50)
+    print("LISTENING... Speak clearly, then pause.")
     print("=" * 50 + "\n")
     
     try:
