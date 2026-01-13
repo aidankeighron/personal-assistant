@@ -1,5 +1,6 @@
 import asyncio
 import sys
+import time
 from loguru import logger
 
 logger.remove()
@@ -14,8 +15,11 @@ from pipecat.services.ollama.llm import OLLamaLLMService
 from pipecat.audio.vad.silero import SileroVADAnalyzer, VADParams
 from pipecat.processors.aggregators.openai_llm_context import OpenAILLMContext, OpenAILLMContextFrame
 from pipecat.processors.frame_processor import FrameProcessor, FrameDirection
-from pipecat.frames.frames import Frame, TextFrame, TranscriptionFrame
+from pipecat.frames.frames import Frame, TextFrame, TranscriptionFrame, StartFrame
 from tts import LocalPiperTTSService
+
+HARDCODED_INPUT_ENABLED = True
+HARDCODED_INPUT_TEXT = "How are you doing today?"
 
 class SimpleContextAggregator(FrameProcessor):
     def __init__(self, context: OpenAILLMContext):
@@ -31,8 +35,14 @@ class SimpleContextAggregator(FrameProcessor):
                 print(f"You: {text}")
                 self._context.add_message({"role": "user", "content": text})
                 await self.push_frame(OpenAILLMContextFrame(self._context), direction)
-        else:
-            await self.push_frame(frame, direction)
+        elif isinstance(frame, StartFrame) and HARDCODED_INPUT_ENABLED:
+             # Give the system a moment to initialize before sending
+             await asyncio.sleep(1.0)
+             text = HARDCODED_INPUT_TEXT
+             print(f"You: {text}")
+             self._context.add_message({"role": "user", "content": text})
+             await self.push_frame(OpenAILLMContextFrame(self._context), direction)
+
 
 class AssistantCollector(FrameProcessor):
     def __init__(self, context: OpenAILLMContext):
@@ -70,7 +80,7 @@ async def main():
     
     transport = LocalAudioTransport(
         params=LocalAudioTransportParams(
-            audio_in_enabled=True,
+            audio_in_enabled=not HARDCODED_INPUT_ENABLED,
             audio_out_enabled=True,
             audio_in_sample_rate=16000, 
             audio_out_sample_rate=16000, 
