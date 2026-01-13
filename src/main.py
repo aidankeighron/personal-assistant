@@ -6,11 +6,10 @@ from pipecat.pipeline.runner import PipelineRunner
 from pipecat.transports.local.audio import LocalAudioTransport, LocalAudioTransportParams
 from pipecat.services.whisper.stt import WhisperSTTService, Model
 from pipecat.services.ollama.llm import OLLamaLLMService
-from pipecat.processors.aggregators.llm_response import LLMUserContextAggregator
-from pipecat.services.openai.llm import OpenAILLMContext
 from pipecat.audio.vad.silero import SileroVADAnalyzer, VADParams
+from pipecat.processors.aggregators.openai_llm_context import OpenAILLMContext
 from pipecat.processors.frame_processor import FrameProcessor
-from pipecat.frames.frames import TextFrame
+from pipecat.frames.frames import TextFrame, TranscriptionFrame
 from tts import LocalPiperTTSService
 
 class TerminalLogger(FrameProcessor):
@@ -20,6 +19,8 @@ class TerminalLogger(FrameProcessor):
 
     async def process_frame(self, frame, direction):
         if isinstance(frame, TextFrame):
+            print(f"[{self._label}]: {frame.text}")
+        elif isinstance(frame, TranscriptionFrame):
             print(f"[{self._label}]: {frame.text}")
         await super().process_frame(frame, direction)
 
@@ -41,29 +42,30 @@ async def main():
     # Speech -> Text
     stt = WhisperSTTService(model=Model.DISTIL_MEDIUM_EN, device="cpu", compute_type="int8")
 
-    # Accumulate User Text
+    # LLM with context handling
     messages = [{
         "role": "system", 
         "content": "You are a helpful voice assistant named Jarvis. Keep answers concise and witty."
     }]
-    context = OpenAILLMContext(messages)
-    context_aggregator = LLMUserContextAggregator(context)
-    # TODO MCP
-    # Text -> Tokens
-    llm = OLLamaLLMService(model="hermes3:8b-q4_k_m", url="http://localhost:11434")
-    # Tokens -> Audio
+    context = OpenAILLMContext(messages=messages)
+    
+    llm = OLLamaLLMService(model="hermes3:8b-q4_k_m", base_url="http://localhost:11434/v1")
+    context_aggregator = llm.create_context_aggregator(context=context)
+    
+    # Text -> Audio
     tts = LocalPiperTTSService(piper_path="./tools/piper/piper.exe", voice_path="./tools/piper/en_US-bryce-medium.onnx")
 
     pipeline = Pipeline([
         transport.input(), 
         stt, 
         TerminalLogger("USER"),
-        context_aggregator, 
+        context_aggregator.user(),
         llm, 
         TerminalLogger("JARVIS"),
         tts, 
-        transport.output()]
-    )
+        context_aggregator.assistant(),
+        transport.output()
+    ])
     task = PipelineTask(pipeline)
     runner = PipelineRunner()
     
