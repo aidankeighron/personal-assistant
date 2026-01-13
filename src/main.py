@@ -49,7 +49,7 @@ async def main():
     }]
     context = OpenAILLMContext(messages=messages)
     
-    llm = OLLamaLLMService(model="hermes3:8b-llama3.1-q4_K_M", base_url="http://localhost:11434/v1")
+    llm = OLLamaLLMService(model="hermes3:8b-llama3.1-q4_K_M", base_url="http://localhost:11434")
     context_aggregator = llm.create_context_aggregator(context=context)
     
     # Text -> Audio
