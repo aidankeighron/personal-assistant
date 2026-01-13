@@ -2,7 +2,6 @@ import asyncio
 import sys
 from loguru import logger
 
-# Quiet down Pipecat's logging
 logger.remove()
 logger.add(sys.stderr, level="WARNING")
 
@@ -85,7 +84,7 @@ async def main():
 
     context = OpenAILLMContext(messages=[{
         "role": "system", 
-        "content": "You are a helpful voice assistant named Jarvis. Keep answers concise and witty."
+        "content": "You are a helpful voice assistant named Jarvis. Keep answers concise."
     }])
     
     llm = OLLamaLLMService(model="hermes3:8b-llama3.1-q4_K_M", base_url="http://localhost:11434/v1")

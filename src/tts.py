@@ -21,7 +21,7 @@ class LocalPiperTTSService(TTSService):
         if self._device == "cuda":
             cmd.append("--use_cuda")
 
-        process = await asyncio.create_subprocess_exec(*cmd, stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE, stderr=sys.stderr)
+        process = await asyncio.create_subprocess_exec(*cmd, stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL)
         out, _ = await process.communicate(input=text.encode("utf-8"))
         
         # Apply volume scaling
