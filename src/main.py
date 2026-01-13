@@ -6,9 +6,6 @@ import urllib.request
 import urllib.error
 from loguru import logger
 
-logger.remove()
-logger.add(sys.stderr, level="WARNING")
-
 from pipecat.pipeline.pipeline import Pipeline
 from pipecat.pipeline.task import PipelineTask
 from pipecat.pipeline.runner import PipelineRunner
@@ -21,7 +18,7 @@ from pipecat.processors.frame_processor import FrameProcessor, FrameDirection
 from pipecat.frames.frames import Frame, TextFrame, TranscriptionFrame, StartFrame
 from tts import LocalPiperTTSService
 
-HARDCODED_INPUT_ENABLED = True
+HARDCODED_INPUT_ENABLED = False
 HARDCODED_INPUT_TEXT = "How are you doing today?"
 
 class SimpleContextAggregator(FrameProcessor):
@@ -39,12 +36,18 @@ class SimpleContextAggregator(FrameProcessor):
                 self._context.add_message({"role": "user", "content": text})
                 await self.push_frame(OpenAILLMContextFrame(self._context), direction)
         elif isinstance(frame, StartFrame) and HARDCODED_INPUT_ENABLED:
+             # User requested hardcoded input so we hijack the start frame behavior slightly
+             # But we MUST push the original StartFrame so downstream can initialize
+             await self.push_frame(frame, direction)
+             
              # Give the system a moment to initialize before sending
              await asyncio.sleep(1.0)
              text = HARDCODED_INPUT_TEXT
              print(f"You: {text}")
              self._context.add_message({"role": "user", "content": text})
              await self.push_frame(OpenAILLMContextFrame(self._context), direction)
+        else:
+            await self.push_frame(frame, direction)
 
 
 class AssistantCollector(FrameProcessor):
