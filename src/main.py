@@ -14,14 +14,14 @@ from pipecat.observers.loggers.metrics_log_observer import MetricsLogObserver
 
 from tts import LocalPiperTTSService
 from ollama import ensure_ollama_running
+from loguru import logger
+import sys
 
-# from loguru import logger
-# import sys
-# logger.remove()
-# logger.add(sys.stderr, level="WARNING")
+logger.remove()
+logger.add(sys.stderr, level="DEBUG", filter={"": "INFO", "pipecat.observers.loggers.metrics_log_observer": "DEBUG"})
 
 HARDCODED_INPUT_ENABLED = True
-HARDCODED_INPUT_TEXT = "How are you doing today?"
+HARDCODED_INPUT_TEXT = "What is the current temperature?"
 
 class SimpleContextAggregator(FrameProcessor):
     def __init__(self, context: OpenAILLMContext):
@@ -77,6 +77,7 @@ class AssistantCollector(FrameProcessor):
         await self.push_frame(frame, direction)
 
 async def main():
+    # SST
     vad = SileroVADAnalyzer(params=VADParams(
         start_secs=0.1,
         stop_secs=0.3,
@@ -93,33 +94,38 @@ async def main():
             audio_in_index=1, 
             audio_out_index=7
     ))
-    # TODO https://docs.pipecat.ai/guides/learn/speech-to-text
     stt = WhisperSTTService(model=Model.SMALL, device="cpu", compute_type="int8")
 
-    system_prompt = open("./tools/system.txt").read()
 
+    # LLM
+    system_prompt = open("./tools/system.txt").read()
     context = OpenAILLMContext(messages=[{
         "role": "system", 
         "content": system_prompt
     }])
     llm = OLLamaLLMService(model="qwen3:4b-instruct-2507-q4_K_M", base_url="http://localhost:11434/v1")
-    tts = LocalPiperTTSService(piper_path="./tools/piper/piper.exe", voice_path="./tools/voices/jarvis-medium.onnx", volume=0.3)
+
+    # TTS
+    tts = LocalPiperTTSService(
+        piper_path="./tools/piper/piper.exe", 
+        voice_path="./tools/voices/jarvis-medium.onnx", 
+        volume=0.3
+    )
 
     pipeline = Pipeline([
         transport.input(), 
-        stt, 
+        stt,
         SimpleContextAggregator(context),
-        llm,
         # TODO https://docs.pipecat.ai/guides/learn/function-calling
+        llm,
         AssistantCollector(context),
         tts, 
-        transport.output()
+        transport.output(),
     ])
     task = PipelineTask(pipeline, params=PipelineParams(
         enable_metrics=True,
         enable_usage_metrics=True,
-        observers=[MetricsLogObserver()]
-    ))
+    ), observers=[MetricsLogObserver()])
     runner = PipelineRunner()
 
     try:
