@@ -13,7 +13,12 @@ from pipecat.frames.frames import Frame, TextFrame, TranscriptionFrame, StartFra
 from tts import LocalPiperTTSService
 from ollama import ensure_ollama_running
 
-HARDCODED_INPUT_ENABLED = False
+# from loguru import logger
+# import sys
+# logger.remove()
+# logger.add(sys.stderr, level="WARNING")
+
+HARDCODED_INPUT_ENABLED = True
 HARDCODED_INPUT_TEXT = "How are you doing today?"
 
 class SimpleContextAggregator(FrameProcessor):
@@ -71,9 +76,7 @@ class AssistantCollector(FrameProcessor):
         await self.push_frame(frame, direction)
 
 async def main():
-    print("Loading voice assistant...")
-    
-    vad = SileroVADAnalyzer(params=VADParams(start_secs=0.1, stop_secs=0.4, confidence=0.6, min_volume=0.03))
+    vad = SileroVADAnalyzer(params=VADParams(start_secs=0.1, stop_secs=0.3, confidence=0.6, min_volume=0.03))
     transport = LocalAudioTransport(
         params=LocalAudioTransportParams(
             audio_in_enabled=not HARDCODED_INPUT_ENABLED,
@@ -107,8 +110,6 @@ async def main():
     ])
     task = PipelineTask(pipeline)
     runner = PipelineRunner()
-    
-    print("Voice Assistant Running... (Ctrl+C to exit)\n")
 
     try:
         await runner.run(task)
