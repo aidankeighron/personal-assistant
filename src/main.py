@@ -1,7 +1,7 @@
 import asyncio
 
 from pipecat.pipeline.pipeline import Pipeline
-from pipecat.pipeline.task import PipelineTask
+from pipecat.pipeline.task import PipelineTask, PipelineParams
 from pipecat.pipeline.runner import PipelineRunner
 from pipecat.transports.local.audio import LocalAudioTransport, LocalAudioTransportParams
 from pipecat.services.whisper.stt import WhisperSTTService, Model
@@ -10,6 +10,8 @@ from pipecat.audio.vad.silero import SileroVADAnalyzer, VADParams
 from pipecat.processors.aggregators.openai_llm_context import OpenAILLMContext, OpenAILLMContextFrame
 from pipecat.processors.frame_processor import FrameProcessor, FrameDirection
 from pipecat.frames.frames import Frame, TextFrame, TranscriptionFrame, StartFrame
+from pipecat.observers.loggers.metrics_log_observer import MetricsLogObserver
+
 from tts import LocalPiperTTSService
 from ollama import ensure_ollama_running
 
@@ -81,8 +83,8 @@ async def main():
         # confidence=0.6,
         # min_volume=0.03
     ))
-    transport = LocalAudioTransport(
-        params=LocalAudioTransportParams(
+    # TODO https://docs.pipecat.ai/guides/features/krisp-viva
+    transport = LocalAudioTransport(params=LocalAudioTransportParams(
             audio_in_enabled=not HARDCODED_INPUT_ENABLED,
             audio_out_enabled=True,
             audio_in_sample_rate=16000, 
@@ -90,8 +92,7 @@ async def main():
             vad_analyzer=vad, 
             audio_in_index=1, 
             audio_out_index=7
-        )
-    )
+    ))
     # TODO https://docs.pipecat.ai/guides/learn/speech-to-text
     stt = WhisperSTTService(model=Model.SMALL, device="cpu", compute_type="int8")
 
@@ -114,7 +115,11 @@ async def main():
         tts, 
         transport.output()
     ])
-    task = PipelineTask(pipeline)
+    task = PipelineTask(pipeline, params=PipelineParams(
+        enable_metrics=True,
+        enable_usage_metrics=True,
+        observers=[MetricsLogObserver()]
+    ))
     runner = PipelineRunner()
 
     try:
