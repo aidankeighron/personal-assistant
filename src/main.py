@@ -21,7 +21,7 @@ logger.add(sys.stderr, level="DEBUG", filter={"": "INFO", "pipecat.observers.log
 
 VERBOSE = True
 HARDCODE_INPUT = True
-HARDCODED_INPUT_TEXT = "What is the current temperature?"
+HARDCODED_INPUT_TEXT = "What is the current temperature Jarvis?"
 
 async def main():
     # SST

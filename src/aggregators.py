@@ -4,13 +4,14 @@ from pipecat.processors.aggregators.openai_llm_context import OpenAILLMContext, 
 from pipecat.frames.frames import Frame, TextFrame, TranscriptionFrame, StartFrame
 from pipecat.processors.frame_processor import FrameProcessor, FrameDirection
 
-from fuzzywuzzy import process
+from fuzzywuzzy import process, fuzz
 from dataclasses import dataclass
 
 @dataclass
 class WordDetectionParams:
     target: str = "jarvis"
     threshold: int = 91
+    min_length: int = 4
 
 class UserAggregator(FrameProcessor):
     def __init__(self, context: OpenAILLMContext, hardcoded_text=None, word_detection_params: WordDetectionParams=WordDetectionParams):
@@ -20,7 +21,8 @@ class UserAggregator(FrameProcessor):
         self._word_detection_params = word_detection_params
 
     def should_respond(self, text: str):
-        close, score = process.extractOne(self._word_detection_params.target, text.split())
+        filtered_words = [w.lower() for w in text.split() if len(w) > self._word_detection_params.min_length]
+        close, score = process.extractOne(self._word_detection_params.target, filtered_words, scorer=fuzz.ratio)
         print(score, close)
         # TODO better
         return score >= self._word_detection_params.threshold
