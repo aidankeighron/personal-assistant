@@ -4,27 +4,40 @@ from pipecat.processors.aggregators.openai_llm_context import OpenAILLMContext, 
 from pipecat.frames.frames import Frame, TextFrame, TranscriptionFrame, StartFrame
 from pipecat.processors.frame_processor import FrameProcessor, FrameDirection
 
+from fuzzywuzzy import process
+from dataclasses import dataclass
+
+@dataclass
+class WordDetectionParams:
+    target: str = "jarvis"
+    threshold: int = 91
+
 class UserAggregator(FrameProcessor):
-    def __init__(self, context: OpenAILLMContext, hardcoded_text=None):
+    def __init__(self, context: OpenAILLMContext, hardcoded_text=None, word_detection_params: WordDetectionParams=WordDetectionParams):
         super().__init__()
         self._context = context
         self._hardcoded_text = hardcoded_text
+        self._word_detection_params = word_detection_params
+
+    def should_respond(self, text: str):
+        close, score = process.extractOne(self._word_detection_params.target, text.split())
+        print(score, close)
+        # TODO better
+        return score >= self._word_detection_params.threshold
     
     async def process_frame(self, frame: Frame, direction: FrameDirection):
         await super().process_frame(frame, direction)
-        
+        text = ""
         if isinstance(frame, TranscriptionFrame):
             text = frame.text.strip()
-            if text:
-                print(f"You: {text}")
-                self._context.add_message({"role": "user", "content": text})
-                await self.push_frame(OpenAILLMContextFrame(self._context), direction)
         elif isinstance(frame, StartFrame) and self._hardcoded_text:
             await self.push_frame(frame, direction)
              
             # Give the system a moment to initialize before sending
             await asyncio.sleep(1.0)
             text = self._hardcoded_text
+            
+        if text and self.should_respond(text):
             print(f"You: {text}")
             self._context.add_message({"role": "user", "content": text})
             await self.push_frame(OpenAILLMContextFrame(self._context), direction)
