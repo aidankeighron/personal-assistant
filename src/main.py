@@ -94,7 +94,7 @@ async def main():
         "content": system_prompt
     }])
     llm = OLLamaLLMService(model="hermes3:8b-llama3.1-q4_K_M", base_url="http://localhost:11434/v1")
-    tts = LocalPiperTTSService(piper_path="./tools/piper/piper.exe", voice_path="./tools/piper/en_US-bryce-medium.onnx", volume=0.3)
+    tts = LocalPiperTTSService(piper_path="./tools/piper/piper.exe", voice_path="./tools/voices/jarvis-high.onnx", volume=0.3)
 
     pipeline = Pipeline([
         transport.input(), 

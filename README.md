@@ -11,3 +11,7 @@ Commands
 `cargo run`
 `cargo add <>`
 `cargo build`
+
+### Links
+
+**Voice**: https://huggingface.co/jgkawell/jarvis
