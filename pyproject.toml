@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "faster-whisper>=1.2.1",
+    "fuzzywuzzy[speedup]>=0.18.0",
     "loguru>=0.7.3",
     "pipecat-ai[local,silero]>=0.0.98",
     "sounddevice>=0.5.3",
