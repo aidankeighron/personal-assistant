@@ -47,7 +47,6 @@ class SimpleContextAggregator(FrameProcessor):
         else:
             await self.push_frame(frame, direction)
 
-
 class AssistantCollector(FrameProcessor):
     def __init__(self, context: OpenAILLMContext):
         super().__init__()
@@ -76,7 +75,12 @@ class AssistantCollector(FrameProcessor):
         await self.push_frame(frame, direction)
 
 async def main():
-    vad = SileroVADAnalyzer(params=VADParams(start_secs=0.1, stop_secs=0.3, confidence=0.6, min_volume=0.03))
+    vad = SileroVADAnalyzer(params=VADParams(
+        start_secs=0.1,
+        stop_secs=0.3,
+        # confidence=0.6,
+        # min_volume=0.03
+    ))
     transport = LocalAudioTransport(
         params=LocalAudioTransportParams(
             audio_in_enabled=not HARDCODED_INPUT_ENABLED,
@@ -88,6 +92,7 @@ async def main():
             audio_out_index=7
         )
     )
+    # TODO https://docs.pipecat.ai/guides/learn/speech-to-text
     stt = WhisperSTTService(model=Model.SMALL, device="cpu", compute_type="int8")
 
     system_prompt = open("./tools/system.txt").read()
@@ -104,6 +109,7 @@ async def main():
         stt, 
         SimpleContextAggregator(context),
         llm,
+        # TODO https://docs.pipecat.ai/guides/learn/function-calling
         AssistantCollector(context),
         tts, 
         transport.output()
