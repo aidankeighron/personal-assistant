@@ -11,7 +11,7 @@ from pipecat.pipeline.runner import PipelineRunner
 from pipecat.pipeline.pipeline import Pipeline
 
 from aggregators import UserAggregator, BotAggregator
-from ollama import ensure_ollama_running
+from ollama import ensure_ollama_running, ensure_model_downloaded
 from tts import LocalPiperTTSService
 from loguru import logger
 import sys
@@ -22,6 +22,7 @@ logger.add(sys.stderr, level="DEBUG", filter={"": "INFO", "pipecat.observers.log
 VERBOSE = True
 HARDCODE_INPUT = True
 HARDCODED_INPUT_TEXT = "What is the current temperature Jarvis?"
+MODEL_NAME = "qwen3:4b-instruct-2507-q4_K_M"
 
 async def main():
     # SST
@@ -51,7 +52,7 @@ async def main():
         "role": "system", 
         "content": system_prompt
     }])
-    llm = OLLamaLLMService(model="qwen3:4b-instruct-2507-q4_K_M", base_url="http://localhost:11434/v1")
+    llm = OLLamaLLMService(model=MODEL_NAME, base_url="http://localhost:11434/v1")
 
     # TTS
     tts = LocalPiperTTSService(
@@ -83,4 +84,5 @@ async def main():
 
 if __name__ == "__main__":
     ensure_ollama_running()
+    ensure_model_downloaded(MODEL_NAME)
     asyncio.run(main())
