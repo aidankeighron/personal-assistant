@@ -31,7 +31,7 @@ logging.getLogger("asyncio").setLevel(logging.WARNING)
 
 VERBOSE = True
 HARDCODE_INPUT = True
-HARDCODED_INPUT_TEXT = "What is the current weather Jarvis?"
+HARDCODED_INPUT_TEXT = "Jarvis What is the current weather, use the search_internet function"
 MODEL_NAME = "qwen3:4b-instruct-2507-q4_K_M"
 
 async def main():
@@ -48,7 +48,8 @@ async def main():
             audio_out_sample_rate=16000, 
             vad_analyzer=vad, 
             audio_in_index=1, 
-            audio_out_index=7
+            audio_out_index=7,
+            allow_interruptions=False,
     ))
     stt = WhisperSTTService(model=Model.SMALL, device="cpu", compute_type="int8")
 
