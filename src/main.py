@@ -31,7 +31,7 @@ logging.getLogger("pipecat").setLevel(logging.WARNING)
 logging.getLogger("asyncio").setLevel(logging.WARNING)
 
 VERBOSE = True
-HARDCODE_INPUT = False
+HARDCODE_INPUT = True
 HARDCODED_INPUT_TEXT = "What is the current temperature Jarvis?"
 MODEL_NAME = "qwen3:4b-instruct-2507-q4_K_M"
 
@@ -118,7 +118,7 @@ async def main():
         llm,
         # assistant_aggregator,
         BotAggregator(context),
-        # console_logger,
+        console_logger,
         tts, 
         transport.output(),
     ])
