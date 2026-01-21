@@ -9,6 +9,7 @@ dependencies = [
     "fuzzywuzzy[speedup]>=0.18.0",
     "loguru>=0.7.3",
     "pipecat-ai[local,silero]>=0.0.98",
+    "psutil>=7.2.1",
     "python-dotenv>=1.2.1",
     "sounddevice>=0.5.3",
     "tavily-python>=0.7.19",

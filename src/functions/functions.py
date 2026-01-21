@@ -1,7 +1,7 @@
 from pipecat.adapters.schemas.function_schema import FunctionSchema
 from pipecat.services.llm_service import FunctionCallParams
 from tavily import TavilyClient
-import os
+import os, psutil, time
 
 tavily = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
 
@@ -23,4 +23,20 @@ search_internet = FunctionSchema(
         }
     },
     required=["query"]
+)
+
+process = psutil.Process(os.getpid())
+async def monitor_resources(params: FunctionCallParams):
+    memory_info = process.memory_info()
+    ram_used_mb = memory_info.rss / (1024 * 1024)
+
+    process.cpu_percent(interval=0.1) 
+    cpu_usage_percent = process.cpu_percent(interval=None)
+
+    await params.result_callback({"ram": ram_used_mb, "cpu": cpu_usage_percent})
+
+get_resource_usage = FunctionSchema(
+    name="get_resource_usage",
+    description="Get the resource usage of the running process",
+    properties={}, required=[]
 )

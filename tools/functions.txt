@@ -5,3 +5,7 @@ search_internet
 Use this to search the internet for any additional information. This will add extra delay to your response so only use as needed. Make sure do provide a descriptive search query.
 
 Make sure to add all the relevant information like: "current weather in Lansing Michigan" instead of "current weather"
+
+monitor_resources
+
+Use this to get the CPU and Memory usage of the program
