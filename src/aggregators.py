@@ -22,7 +22,7 @@ class UserAggregator(FrameProcessor):
 
     def should_respond(self, text: str):
         filtered_words = [w.lower() for w in text.split() if len(w) > self._word_detection_params.min_length]
-        close, score = process.extractOne(self._word_detection_params.target, filtered_words, scorer=fuzz.ratio)
+        _, score = process.extractOne(self._word_detection_params.target, filtered_words, scorer=fuzz.ratio)
         # TODO better
         return score >= self._word_detection_params.threshold
     
