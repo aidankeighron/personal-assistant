@@ -31,7 +31,7 @@ logging.getLogger("asyncio").setLevel(logging.WARNING)
 
 VERBOSE = True
 HARDCODE_INPUT = True
-HARDCODED_INPUT_TEXT = "Hello Jarvis?"
+HARDCODED_INPUT_TEXT = "What is the current weather Jarvis?"
 MODEL_NAME = "qwen3:4b-instruct-2507-q4_K_M"
 
 async def main():

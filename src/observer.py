@@ -1,7 +1,8 @@
 from pipecat.processors.frame_processor import FrameDirection, FrameProcessor
 from pipecat.frames.frames import MetricsFrame, Frame
 from datetime import datetime
-import logging
+from pathlib import Path
+import logging, os
 
 logging.basicConfig(
     filename=f'./logs/{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.txt', 
@@ -9,6 +10,15 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s', 
     filemode='w'
 )
+
+# Delete old logs
+files = sorted(Path("./logs").glob("*.txt"), key=os.path.getmtime)
+if len(files) > 10:
+    for file in files[:-10]:
+        try:
+            os.remove(file)
+        except:
+            ...
 
 class MetricsLogger(FrameProcessor):
     async def process_frame(self, frame: Frame, direction: FrameDirection):

@@ -1,13 +1,14 @@
 from pipecat.adapters.schemas.function_schema import FunctionSchema
 from pipecat.services.llm_service import FunctionCallParams
 from tavily import TavilyClient
-import os, psutil, time
+import os, psutil, logging
 
 tavily = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
 
 async def execute_web_search(params: FunctionCallParams):
     query = params.arguments.get("query")
-    
+    logging.info(f"Searching: {query}")
+
     response = tavily.search(query=query, search_depth="basic", max_results=1)
     context = "\n".join([r["content"] for r in response["results"]])
     
@@ -32,7 +33,8 @@ async def monitor_resources(params: FunctionCallParams):
 
     process.cpu_percent(interval=0.1) 
     cpu_usage_percent = process.cpu_percent(interval=None)
-
+    logging.info(f"Requesting usage: CPU {cpu_usage_percent} RAM {ram_used_mb}")
+    
     await params.result_callback({"ram": ram_used_mb, "cpu": cpu_usage_percent})
 
 get_resource_usage = FunctionSchema(

@@ -17,7 +17,8 @@ class WakeWordGate(FrameProcessor):
         filtered_words = [w.lower() for w in text.split() if len(w) > self._min_length]
         if not filtered_words:
             return False
-        _, score = process.extractOne(self._wake_word, filtered_words, scorer=fuzz.ratio)
+        match, score = process.extractOne(self._wake_word, filtered_words, scorer=fuzz.ratio)
+        logging.info(f"Word extracting: {match}:{score} {text}")
         return score >= self._threshold
 
     async def process_frame(self, frame: Frame, direction: FrameDirection):
@@ -28,9 +29,11 @@ class WakeWordGate(FrameProcessor):
             if self._context.messages and self._context.messages[-1]["role"] == "user":
                 last_user_message = self._context.messages[-1]["content"]
                 if self._should_respond(last_user_message):
-                    print(f"Wake word detected: {last_user_message}")
+                    print(f"User: {last_user_message}")
+                    logging.info(f"User: {last_user_message}")
                 else:
-                    print(f"Ignored (no wake word): {last_user_message}")
+                    print(last_user_message)
+                    logging.info(f"Audio: {last_user_message}")
                     return
         
         await self.push_frame(frame, direction)
@@ -55,6 +58,7 @@ class ConsoleLogger(FrameProcessor):
         elif isinstance(frame, LLMFullResponseEndFrame):
             if self._current_response:
                 print()
+                logging.info(f"Jarvis: {self._current_response}")
                 self._current_response = ""
             self._started = False
 
