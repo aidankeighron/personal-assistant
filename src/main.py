@@ -2,8 +2,11 @@ from dotenv import load_dotenv
 load_dotenv()
 import asyncio
 
+from pipecat.processors.aggregators.llm_response_universal import LLMContextAggregatorPair, LLMUserAggregatorParams
 from pipecat.transports.local.audio import LocalAudioTransport, LocalAudioTransportParams
-from pipecat.observers.loggers.metrics_log_observer import MetricsLogObserver
+from pipecat.audio.turn.smart_turn.local_smart_turn_v3 import LocalSmartTurnAnalyzerV3
+from pipecat.turns.user_stop import TurnAnalyzerUserTurnStopStrategy
+from pipecat.turns.user_turn_strategies import UserTurnStrategies
 from pipecat.services.whisper.stt import WhisperSTTService, Model
 from pipecat.audio.vad.silero import SileroVADAnalyzer, VADParams
 from pipecat.pipeline.task import PipelineTask, PipelineParams
@@ -13,7 +16,8 @@ from pipecat.services.llm_service import LLMContext
 from pipecat.pipeline.runner import PipelineRunner
 from pipecat.pipeline.pipeline import Pipeline
 
-from aggregators import UserAggregator, BotAggregator
+from aggregators import UserAggregator, BotAggregator # Leaving these just in case, though unused
+from processors import WakeWordGate, ConsoleLogger, HardcodedInputInjector
 from ollama import ensure_ollama_running, ensure_model_downloaded
 from tts import LocalPiperTTSService
 from loguru import logger
@@ -33,13 +37,9 @@ MODEL_NAME = "qwen3:4b-instruct-2507-q4_K_M"
 
 async def main():
     # SST
-    # TODO https://docs.pipecat.ai/server/utilities/user-turn-strategies
-    # TODO https://docs.pipecat.ai/server/utilities/smart-turn/smart-turn-overview
     vad = SileroVADAnalyzer(params=VADParams(
         start_secs=0.1,
-        stop_secs=0.3,
-        # confidence=0.6,
-        # min_volume=0.03
+        stop_secs=0.2,
     ))
     # TODO https://docs.pipecat.ai/guides/features/krisp-viva
     transport = LocalAudioTransport(params=LocalAudioTransportParams(
@@ -75,16 +75,56 @@ async def main():
         volume=0.3
     )
 
-    pipeline = Pipeline([
-        transport.input(), 
-        stt,
-        UserAggregator(context, hardcoded_text=HARDCODED_INPUT_TEXT if HARDCODE_INPUT else None),
-        # TODO https://docs.pipecat.ai/guides/learn/function-calling
+    # Smart Turn Aggregators
+    # user_aggregator, assistant_aggregator = LLMContextAggregatorPair(
+    #     context,
+    #     user_params=LLMUserAggregatorParams(
+    #         user_turn_strategies=UserTurnStrategies(
+    #             stop=[TurnAnalyzerUserTurnStopStrategy(
+    #                 turn_analyzer=LocalSmartTurnAnalyzerV3()
+    #             )]
+    #         ),
+    #     ),
+    # )
+    user_aggregator, assistant_aggregator = LLMContextAggregatorPair(context)
+    
+    # Custom Processors
+    wake_word_gate = WakeWordGate(context=context)
+    console_logger = ConsoleLogger()
+    
+    # pipeline = Pipeline([
+    #     transport.input(), 
+    #     stt,
+    #     # UserAggregator(context, hardcoded_text=HARDCODED_INPUT_TEXT if HARDCODE_INPUT else None),
+    #     user_aggregator,
+    #     # wake_word_gate,
+    #     llm,
+    #     BotAggregator(context),
+    #     tts, 
+    #     transport.output(),
+    # ])
+
+    pipeline_steps = [transport.input()]
+    
+    if HARDCODE_INPUT:
+        pipeline_steps.append(HardcodedInputInjector(HARDCODED_INPUT_TEXT))
+        pipeline_steps.append(stt)
+    else:
+        pipeline_steps.append(stt)
+        
+    pipeline_steps.extend([
+        user_aggregator,
+        # wake_word_gate,
         llm,
+        # assistant_aggregator,
         BotAggregator(context),
+        # console_logger,
         tts, 
         transport.output(),
     ])
+
+    pipeline = Pipeline(pipeline_steps)
+    
     task = PipelineTask(pipeline, params=PipelineParams(
         enable_metrics=VERBOSE,
         enable_usage_metrics=VERBOSE,
