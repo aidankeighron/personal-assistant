@@ -17,8 +17,8 @@ from aggregators import UserAggregator, BotAggregator
 from ollama import ensure_ollama_running, ensure_model_downloaded
 from tts import LocalPiperTTSService
 from loguru import logger
-import sys
 from functions import functions
+from observer import MetricsLogger
 import logging
 
 logger.remove()
@@ -27,7 +27,7 @@ logging.getLogger("pipecat").setLevel(logging.WARNING)
 logging.getLogger("asyncio").setLevel(logging.WARNING)
 
 VERBOSE = True
-HARDCODE_INPUT = True
+HARDCODE_INPUT = False
 HARDCODED_INPUT_TEXT = "What is the current temperature Jarvis?"
 MODEL_NAME = "qwen3:4b-instruct-2507-q4_K_M"
 
@@ -56,9 +56,10 @@ async def main():
     # LLM
     llm = OLLamaLLMService(model=MODEL_NAME, base_url="http://localhost:11434/v1")
     llm.register_function("search_internet", functions.execute_web_search, cancel_on_interruption=True)
+    llm.register_function("get_resource_usage", functions.monitor_resources, cancel_on_interruption=True)
 
     # Context
-    tools = ToolsSchema(standard_tools=[functions.search_internet])
+    tools = ToolsSchema(standard_tools=[functions.search_internet, functions.get_resource_usage])
     system_prompt = open("./tools/system.txt").read()
     function_prompt = open("./tools/functions.txt").read()
     full_system_prompt = f"{system_prompt}\n\n{function_prompt}"
