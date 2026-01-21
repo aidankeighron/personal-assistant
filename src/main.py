@@ -114,7 +114,7 @@ async def main():
         
     pipeline_steps.extend([
         user_aggregator,
-        # wake_word_gate,
+        wake_word_gate,
         llm,
         # assistant_aggregator,
         BotAggregator(context),

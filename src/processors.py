@@ -21,7 +21,8 @@ class WakeWordGate(FrameProcessor):
         return score >= self._threshold
 
     async def process_frame(self, frame: Frame, direction: FrameDirection):
-        logging.info(type(frame).__name__)
+        await super().process_frame(frame, direction)
+
         if isinstance(frame, LLMContextFrame):
             # If last message was user
             if self._context.messages and self._context.messages[-1]["role"] == "user":
@@ -41,6 +42,7 @@ class ConsoleLogger(FrameProcessor):
         self._current_response = ""
 
     async def process_frame(self, frame: Frame, direction: FrameDirection):
+        await super().process_frame(frame, direction)
         await self.push_frame(frame, direction)
 
         if isinstance(frame, LLMFullResponseStartFrame):
@@ -62,6 +64,7 @@ class HardcodedInputInjector(FrameProcessor):
         self._text = text
 
     async def process_frame(self, frame: Frame, direction: FrameDirection):
+        await super().process_frame(frame, direction)
         await self.push_frame(frame, direction)
         if isinstance(frame, StartFrame):
             await asyncio.sleep(1.0)
