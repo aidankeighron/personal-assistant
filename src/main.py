@@ -16,7 +16,6 @@ from pipecat.services.llm_service import LLMContext
 from pipecat.pipeline.runner import PipelineRunner
 from pipecat.pipeline.pipeline import Pipeline
 
-from aggregators import UserAggregator, BotAggregator # Leaving these just in case, though unused
 from processors import WakeWordGate, ConsoleLogger, HardcodedInputInjector
 from ollama import ensure_ollama_running, ensure_model_downloaded
 from tts import LocalPiperTTSService
@@ -32,7 +31,7 @@ logging.getLogger("asyncio").setLevel(logging.WARNING)
 
 VERBOSE = True
 HARDCODE_INPUT = True
-HARDCODED_INPUT_TEXT = "What is the current temperature Jarvis?"
+HARDCODED_INPUT_TEXT = "Hello Jarvis?"
 MODEL_NAME = "qwen3:4b-instruct-2507-q4_K_M"
 
 async def main():
@@ -91,35 +90,18 @@ async def main():
     # Custom Processors
     wake_word_gate = WakeWordGate(context=context)
     console_logger = ConsoleLogger()
-    
-    # pipeline = Pipeline([
-    #     transport.input(), 
-    #     stt,
-    #     # UserAggregator(context, hardcoded_text=HARDCODED_INPUT_TEXT if HARDCODE_INPUT else None),
-    #     user_aggregator,
-    #     # wake_word_gate,
-    #     llm,
-    #     BotAggregator(context),
-    #     tts, 
-    #     transport.output(),
-    # ])
 
     pipeline_steps = [transport.input()]
-    
     if HARDCODE_INPUT:
         pipeline_steps.append(HardcodedInputInjector(HARDCODED_INPUT_TEXT))
-        pipeline_steps.append(stt)
-    else:
-        pipeline_steps.append(stt)
-        
     pipeline_steps.extend([
+        stt,
         user_aggregator,
         wake_word_gate,
         llm,
-        # assistant_aggregator,
-        BotAggregator(context),
         console_logger,
         tts, 
+        assistant_aggregator,
         transport.output(),
     ])
 
