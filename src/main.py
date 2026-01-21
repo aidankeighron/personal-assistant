@@ -57,9 +57,11 @@ async def main():
     # Context
     tools = ToolsSchema(standard_tools=[functions.search_internet])
     system_prompt = open("./tools/system.txt").read()
+    function_prompt = open("./tools/functions.txt").read()
+    full_system_prompt = f"{system_prompt}\n\n{function_prompt}"
     context = LLMContext(messages=[{
         "role": "system", 
-        "content": system_prompt
+        "content": full_system_prompt
     }], tools=tools)
 
     # TTS
