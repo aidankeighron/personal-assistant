@@ -19,9 +19,12 @@ from tts import LocalPiperTTSService
 from loguru import logger
 import sys
 from functions import functions
+import logging
 
 logger.remove()
-logger.add(sys.stderr, level="DEBUG", filter={"": "INFO", "pipecat.observers.loggers.metrics_log_observer": "DEBUG"})
+logging.getLogger("ollama").setLevel(logging.WARNING)
+logging.getLogger("pipecat").setLevel(logging.WARNING)
+logging.getLogger("asyncio").setLevel(logging.WARNING)
 
 VERBOSE = True
 HARDCODE_INPUT = True

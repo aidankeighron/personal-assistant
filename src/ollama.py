@@ -8,7 +8,7 @@ def ensure_ollama_running():
         return
     except (urllib.error.URLError, ConnectionRefusedError):
         print("Ollama is not running. Starting it...")
-        subprocess.Popen(["ollama", "serve"], shell=True)
+        subprocess.Popen(["ollama", "serve"], shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
         print("Waiting for Ollama to become ready...", end="", flush=True)
         retries = 20
