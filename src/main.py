@@ -87,8 +87,10 @@ async def main():
     task = PipelineTask(pipeline, params=PipelineParams(
         enable_metrics=VERBOSE,
         enable_usage_metrics=VERBOSE,
-    ), observers=[MetricsLogObserver()])
+    ), observers=[MetricsLogger()])
     runner = PipelineRunner()
+
+    print("Voice Assistant Running... Say 'Jarvis' to interact.")
 
     try:
         await runner.run(task)
