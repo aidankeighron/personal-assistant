@@ -1,12 +1,15 @@
+from dotenv import load_dotenv
+load_dotenv()
 import asyncio
 
 from pipecat.transports.local.audio import LocalAudioTransport, LocalAudioTransportParams
-from pipecat.processors.aggregators.openai_llm_context import OpenAILLMContext
 from pipecat.observers.loggers.metrics_log_observer import MetricsLogObserver
 from pipecat.services.whisper.stt import WhisperSTTService, Model
 from pipecat.audio.vad.silero import SileroVADAnalyzer, VADParams
 from pipecat.pipeline.task import PipelineTask, PipelineParams
+from pipecat.adapters.schemas.tools_schema import ToolsSchema
 from pipecat.services.ollama.llm import OLLamaLLMService
+from pipecat.services.llm_service import LLMContext
 from pipecat.pipeline.runner import PipelineRunner
 from pipecat.pipeline.pipeline import Pipeline
 
@@ -15,6 +18,7 @@ from ollama import ensure_ollama_running, ensure_model_downloaded
 from tts import LocalPiperTTSService
 from loguru import logger
 import sys
+from functions import functions
 
 logger.remove()
 logger.add(sys.stderr, level="DEBUG", filter={"": "INFO", "pipecat.observers.loggers.metrics_log_observer": "DEBUG"})
@@ -47,12 +51,16 @@ async def main():
     stt = WhisperSTTService(model=Model.SMALL, device="cpu", compute_type="int8")
 
     # LLM
+    llm = OLLamaLLMService(model=MODEL_NAME, base_url="http://localhost:11434/v1")
+    llm.register_function("search_internet", functions.execute_web_search, cancel_on_interruption=True)
+
+    # Context
+    tools = ToolsSchema(standard_tools=[functions.search_internet])
     system_prompt = open("./tools/system.txt").read()
-    context = OpenAILLMContext(messages=[{
+    context = LLMContext(messages=[{
         "role": "system", 
         "content": system_prompt
-    }])
-    llm = OLLamaLLMService(model=MODEL_NAME, base_url="http://localhost:11434/v1")
+    }], tools=tools)
 
     # TTS
     tts = LocalPiperTTSService(
