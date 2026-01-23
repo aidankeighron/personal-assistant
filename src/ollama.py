@@ -41,3 +41,4 @@ def ensure_model_downloaded(model_name: str):
             logging.info(f"Model '{model_name}' is already available.")
     except subprocess.CalledProcessError as e:
         print(f"Error checking/downloading model: {e}")
+        logging.error(f"Error checking/downloading model: {e}")
