@@ -1,6 +1,8 @@
-from pipecat.processors.frame_processor import FrameDirection, FrameProcessor
-from pipecat.frames.frames import MetricsFrame, Frame
+from pipecat.observers.base_observer import BaseObserver, FramePushed, FrameProcessed
+from pipecat.frames.frames import MetricsFrame, BotStartedSpeakingFrame
+from pipecat.processors.frame_processor import FrameDirection
 from datetime import datetime
+from pipecat.metrics.metrics import LLMUsageMetricsData, ProcessingMetricsData, TTFBMetricsData, TTSUsageMetricsData
 from pathlib import Path
 import logging, os
 
@@ -13,19 +15,42 @@ logging.basicConfig(
 
 # Delete old logs
 files = sorted(Path("./logs").glob("*.txt"), key=os.path.getmtime)
-if len(files) > 10:
-    for file in files[:-10]:
+total_files = 5
+if len(files) > total_files:
+    for file in files[:-total_files]:
         try:
             os.remove(file)
         except:
             ...
 
-class MetricsLogger(FrameProcessor):
-    async def process_frame(self, frame: Frame, direction: FrameDirection):
-        await super().process_frame(frame, direction)
+class MetricsLogger(BaseObserver):
+    def __init__(self):
+        super().__init__()
+        self._seen_frames = set()
 
-        if isinstance(frame, MetricsFrame):
-            for d in frame.data:
-                logging.info(f"MetricsFrame: {frame}, value: {d.value}")
+    async def on_push_frame(self, data: FramePushed):
+        if id(data.frame) in self._seen_frames:
+            return
+        
+        time_sec = data.timestamp / 1_000_000_000
+        arrow = "->" if data.direction == FrameDirection.DOWNSTREAM else "<-"
 
-        await self.push_frame(frame, direction)
+        if isinstance(data.frame, MetricsFrame):
+            for d in data.frame.data:
+                if isinstance(d, TTFBMetricsData):
+                    logging.info(f"Metric: {type(d).__name__}, time to first byte: {d.value}")
+                elif isinstance(d, ProcessingMetricsData):
+                    logging.info(f"Metric: {type(d).__name__}, processing: {d.value}")
+                elif isinstance(d, LLMUsageMetricsData):
+                    logging.info(f"Metric: {type(d).__name__}, tokens: {d.value.prompt_tokens}, characters: {d.value.completion_tokens}")
+                elif isinstance(d, TTSUsageMetricsData):
+                    logging.info(f"Metric: {type(d).__name__}, characters: {d.value}")
+                else:
+                    logging.info(f"Metric: {type(d).__name__}, value {d.value}")
+        if isinstance(data.frame, BotStartedSpeakingFrame):
+            logging.info(f"Bot Started Speaking: {data.source} {arrow} {data.destination} at {time_sec:.2f}s")
+        # logging.info(f"MetricsFrame: {data.source} {arrow} {data.destination} at {time_sec:.2f}s Name: {data.frame.name}")
+    
+    async def on_process_frame(self, data: FrameProcessed):
+        # Your frame processing observation logic here
+        pass
