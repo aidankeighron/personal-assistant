@@ -26,15 +26,8 @@ if len(files) > total_files:
 class MetricsLogger(BaseObserver):
     def __init__(self):
         super().__init__()
-        self._seen_frames = set()
 
     async def on_push_frame(self, data: FramePushed):
-        if id(data.frame) in self._seen_frames:
-            return
-        
-        time_sec = data.timestamp / 1_000_000_000
-        arrow = "->" if data.direction == FrameDirection.DOWNSTREAM else "<-"
-
         if isinstance(data.frame, MetricsFrame):
             for d in data.frame.data:
                 if isinstance(d, TTFBMetricsData):
@@ -47,9 +40,6 @@ class MetricsLogger(BaseObserver):
                     logging.info(f"Metric: {type(d).__name__}, characters: {d.value}")
                 else:
                     logging.info(f"Metric: {type(d).__name__}, value {d.value}")
-        if isinstance(data.frame, BotStartedSpeakingFrame):
-            logging.info(f"Bot Started Speaking: {data.source} {arrow} {data.destination} at {time_sec:.2f}s")
-        # logging.info(f"MetricsFrame: {data.source} {arrow} {data.destination} at {time_sec:.2f}s Name: {data.frame.name}")
     
     async def on_process_frame(self, data: FrameProcessed):
         # Your frame processing observation logic here
