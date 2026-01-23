@@ -115,6 +115,7 @@ async def main():
     runner = PipelineRunner()
 
     print("Voice Assistant Running... Say 'Jarvis' to interact.")
+    logging.info("Voice Assistant Running... Say 'Jarvis' to interact.")
 
     try:
         await runner.run(task)
