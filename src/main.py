@@ -30,7 +30,7 @@ logging.getLogger("pipecat").setLevel(logging.WARNING)
 logging.getLogger("asyncio").setLevel(logging.WARNING)
 
 VERBOSE = True
-HARDCODE_INPUT = True
+HARDCODE_INPUT = False
 HARDCODED_INPUT_TEXT = "Jarvis What is the current weather, use the search_internet function"
 MODEL_NAME = "qwen3:4b-instruct-2507-q4_K_M"
 
@@ -76,17 +76,20 @@ async def main():
     )
 
     # Smart Turn Aggregators
-    # user_aggregator, assistant_aggregator = LLMContextAggregatorPair(
-    #     context,
-    #     user_params=LLMUserAggregatorParams(
-    #         user_turn_strategies=UserTurnStrategies(
-    #             stop=[TurnAnalyzerUserTurnStopStrategy(
-    #                 turn_analyzer=LocalSmartTurnAnalyzerV3()
-    #             )]
-    #         ),
-    #     ),
-    # )
-    user_aggregator, assistant_aggregator = LLMContextAggregatorPair(context)
+    # user_aggregator, assistant_aggregator = LLMContextAggregatorPair(context)
+    if HARDCODE_INPUT:
+        user_aggregator, assistant_aggregator = LLMContextAggregatorPair(context)
+    else:
+        user_aggregator, assistant_aggregator = LLMContextAggregatorPair(
+            context,
+            user_params=LLMUserAggregatorParams(
+                user_turn_strategies=UserTurnStrategies(
+                    stop=[TurnAnalyzerUserTurnStopStrategy(
+                        turn_analyzer=LocalSmartTurnAnalyzerV3()
+                    )]
+                ),
+            ),
+        )
     
     # Custom Processors
     wake_word_gate = WakeWordGate(context=context)
