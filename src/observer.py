@@ -4,6 +4,7 @@ from pipecat.processors.frame_processor import FrameDirection
 from datetime import datetime
 from pipecat.metrics.metrics import LLMUsageMetricsData, ProcessingMetricsData, TTFBMetricsData, TTSUsageMetricsData
 from pathlib import Path
+from collections import deque
 import logging, os
 
 logging.basicConfig(
@@ -26,9 +27,13 @@ if len(files) > total_files:
 class MetricsLogger(BaseObserver):
     def __init__(self):
         super().__init__()
+        self._seen_frames = deque(maxlen=100)
 
     async def on_push_frame(self, data: FramePushed):
         if isinstance(data.frame, MetricsFrame):
+            if id(data.frame) in self._seen_frames:
+                return
+            self._seen_frames.append(id(data.frame))
             for d in data.frame.data:
                 if isinstance(d, TTFBMetricsData):
                     logging.info(f"Metric: {type(d).__name__}, time to first byte: {d.value}")
