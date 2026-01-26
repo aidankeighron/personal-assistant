@@ -34,7 +34,6 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 VERBOSE = True
 HARDCODE_INPUT = False
 HARDCODED_INPUT_TEXT = "Jarvis What is the current weather, use the search_internet function"
-# TODO Jarvis, can you create a data file called aden.txt that contains  relevant information about me that you collect as I speak to  you?
 MODEL_NAME = "qwen3:4b-instruct-2507-q4_K_M"
 
 async def main():
