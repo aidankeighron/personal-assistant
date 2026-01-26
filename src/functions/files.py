@@ -1,4 +1,5 @@
 import os
+import asyncio
 
 # Base paths
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -10,8 +11,11 @@ def _is_safe_path(path: str, base_dir: str) -> bool:
     """Ensures the path is within the base_dir."""
     return os.path.abspath(path).startswith(os.path.abspath(base_dir))
 
-def read_file(filename: str) -> str:
+async def read_file(filename: str) -> str:
     """Reads content from a file in the data directory."""
+    return await asyncio.to_thread(_read_file_sync, filename)
+
+def _read_file_sync(filename: str) -> str:
     filepath = os.path.join(DATA_DIR, filename)
     
     if not _is_safe_path(filepath, DATA_DIR):
@@ -25,8 +29,11 @@ def read_file(filename: str) -> str:
     except Exception as e:
         return f"Error reading file: {str(e)}"
 
-def write_file(filename: str, content: str) -> str:
+async def write_file(filename: str, content: str) -> str:
     """Writes content to a file in the data directory."""
+    return await asyncio.to_thread(_write_file_sync, filename, content)
+
+def _write_file_sync(filename: str, content: str) -> str:
     filepath = os.path.join(DATA_DIR, filename)
     
     if not _is_safe_path(filepath, DATA_DIR):
@@ -39,11 +46,14 @@ def write_file(filename: str, content: str) -> str:
     except Exception as e:
         return f"Error writing file: {str(e)}"
 
-def append_to_memory(content: str) -> str:
+async def append_to_memory(content: str) -> str:
     """Appends a new line to the memory.txt file."""
+    return await asyncio.to_thread(_append_to_memory_sync, content)
+
+def _append_to_memory_sync(content: str) -> str:
     try:
         with open(MEMORY_FILE, 'a', encoding='utf-8') as f:
             f.write(f"{content}\n")
-        return "Successfully appended to memory."
+        return f"Memory updated with: {content}"
     except Exception as e:
         return f"Error appending to memory: {str(e)}"

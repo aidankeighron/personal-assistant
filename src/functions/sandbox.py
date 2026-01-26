@@ -2,7 +2,7 @@ import sys
 import io
 import contextlib
 
-def run_python_code(code: str) -> str:
+async def run_python_code(code: str) -> str:
     """
     Executes Python code in a restricted environment.
     Only allows access to safe modules like math, random, datetime.
