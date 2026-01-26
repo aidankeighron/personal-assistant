@@ -20,7 +20,7 @@ from processors import WakeWordGate, ConsoleLogger, HardcodedInputInjector
 from ollama import ensure_ollama_running, ensure_model_downloaded, unload_model
 from tts import LocalPiperTTSService
 from loguru import logger
-from functions import functions, basic, sandbox, files
+from functions import functions, basic, sandbox, files, git_ops
 from observer import MetricsLogger
 import logging
 
@@ -66,6 +66,7 @@ async def main():
     llm.register_function("read_file", files.execute_read_file, cancel_on_interruption=True)
     llm.register_function("write_file", files.execute_write_file, cancel_on_interruption=True)
     llm.register_function("append_to_memory", files.execute_append_to_memory, cancel_on_interruption=True)
+    llm.register_function("agent_git_modification", git_ops.execute_agent_git_modification, cancel_on_interruption=True)
 
     # Context
     tools = ToolsSchema(standard_tools=[
@@ -77,7 +78,8 @@ async def main():
         sandbox.run_python_code,
         files.read_file,
         files.write_file,
-        files.append_to_memory
+        files.append_to_memory,
+        git_ops.agent_git_modification
     ])
     system_prompt = open("./tools/system.txt").read()
     # function_prompt = open("./tools/functions.txt").read()
