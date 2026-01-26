@@ -1,0 +1,1 @@
+User prefers 12-hour time format for all time displays.

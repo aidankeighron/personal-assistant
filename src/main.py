@@ -32,6 +32,7 @@ logging.getLogger("asyncio").setLevel(logging.WARNING)
 VERBOSE = True
 HARDCODE_INPUT = False
 HARDCODED_INPUT_TEXT = "Jarvis What is the current weather, use the search_internet function"
+# TODO Jarvis, can you create a data file called aden.txt that contains  relevant information about me that you collect as I speak to  you?
 MODEL_NAME = "qwen3:4b-instruct-2507-q4_K_M"
 
 async def main():
@@ -51,7 +52,7 @@ async def main():
             audio_out_index=7,
             allow_interruptions=False,
     ))
-    stt = WhisperSTTService(model=Model.SMALL, device="cpu", compute_type="int8")
+    stt = WhisperSTTService(model=Model.SMALL, device="cuda", compute_type="float16")
 
     # LLM
     llm = OLLamaLLMService(model=MODEL_NAME, base_url="http://localhost:11434/v1")
@@ -78,10 +79,10 @@ async def main():
         files.append_to_memory
     ])
     system_prompt = open("./tools/system.txt").read()
-    function_prompt = open("./tools/functions.txt").read()
+    # function_prompt = open("./tools/functions.txt").read()
     memory_content = open("./tools/memory.txt").read()
     
-    full_system_prompt = f"{system_prompt}\n\nMEMORY:\n{memory_content}\n\nFUNCTIONS:\n{function_prompt}"
+    full_system_prompt = f"{system_prompt}\n\nMEMORY:\n{memory_content}"
     context = LLMContext(messages=[{
         "role": "system", 
         "content": full_system_prompt
