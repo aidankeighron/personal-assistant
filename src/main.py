@@ -20,7 +20,7 @@ from processors import WakeWordGate, ConsoleLogger, HardcodedInputInjector
 from ollama import ensure_ollama_running, ensure_model_downloaded
 from tts import LocalPiperTTSService
 from loguru import logger
-from functions import functions, basic, sandbox
+from functions import functions, basic, sandbox, files
 from observer import MetricsLogger
 import logging
 
@@ -61,6 +61,9 @@ async def main():
     llm.register_function("get_current_location", basic.get_current_location, cancel_on_interruption=True)
     llm.register_function("get_current_date", basic.get_current_date, cancel_on_interruption=True)
     llm.register_function("run_python_code", sandbox.run_python_code, cancel_on_interruption=True)
+    llm.register_function("read_file", files.read_file, cancel_on_interruption=True)
+    llm.register_function("write_file", files.write_file, cancel_on_interruption=True)
+    llm.register_function("append_to_memory", files.append_to_memory, cancel_on_interruption=True)
 
     # Context
     tools = ToolsSchema(standard_tools=[
@@ -69,7 +72,10 @@ async def main():
         basic.get_current_time,
         basic.get_current_location,
         basic.get_current_date,
-        sandbox.run_python_code
+        sandbox.run_python_code,
+        files.read_file,
+        files.write_file,
+        files.append_to_memory
     ])
     system_prompt = open("./tools/system.txt").read()
     function_prompt = open("./tools/functions.txt").read()
