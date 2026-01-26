@@ -32,7 +32,7 @@ async def monitor_resources(params: FunctionCallParams):
     memory_info = process.memory_info()
     ram_used_mb = memory_info.rss / (1024 * 1024)
 
-    logging.info(f"Requesting usage")
+    logging.info("Requesting usage")
     process.cpu_percent(interval=0.1) 
     cpu_usage_percent = process.cpu_percent(interval=None)
     logging.info(f"Usage: CPU {cpu_usage_percent} RAM {ram_used_mb}")
