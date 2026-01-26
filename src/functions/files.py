@@ -41,7 +41,7 @@ def _read_file_sync(filename: str) -> str:
 
 read_file = FunctionSchema(
     name="read_file",
-    description="Read the content of a file from the data directory",
+    description="Read the content of a file from the data directory. Do not add the /data prefix that is automatically applied",
     properties={
         "filename": {
             "type": "string",
@@ -78,7 +78,7 @@ def _write_file_sync(filename: str, content: str) -> str:
 
 write_file = FunctionSchema(
     name="write_file",
-    description="Write content to a file in the data directory",
+    description="Write content to a file in the data directory. Do not add the /data prefix that is automatically applied",
     properties={
         "filename": {
             "type": "string",
