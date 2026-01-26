@@ -2,12 +2,15 @@ import datetime
 import urllib.request
 import json
 import asyncio
+import logging
 from pipecat.services.llm_service import FunctionCallParams
 from pipecat.adapters.schemas.function_schema import FunctionSchema
 
 async def execute_get_current_time(params: FunctionCallParams):
     """Returns the current local time."""
+    logging.info("Calling get_current_time")
     time_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    logging.info(f"get_current_time result: {time_str}")
     await params.result_callback(time_str)
 
 get_current_time = FunctionSchema(
@@ -19,7 +22,9 @@ get_current_time = FunctionSchema(
 
 async def execute_get_current_date(params: FunctionCallParams):
     """Returns the current date."""
+    logging.info("Calling get_current_date")
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
+    logging.info(f"get_current_date result: {date_str}")
     await params.result_callback(date_str)
 
 get_current_date = FunctionSchema(
@@ -31,12 +36,16 @@ get_current_date = FunctionSchema(
 
 async def execute_get_current_location(params: FunctionCallParams):
     """Returns the current location based on IP address."""
+    logging.info("Calling get_current_location")
     try:
         # Run blocking I/O in a separate thread
         location = await asyncio.to_thread(_get_location_sync)
+        logging.info(f"get_current_location result: {location}")
         await params.result_callback(location)
     except Exception as e:
-        await params.result_callback(f"Location unavailable: {str(e)}")
+        error_msg = f"Location unavailable: {str(e)}"
+        logging.error(error_msg)
+        await params.result_callback(error_msg)
 
 def _get_location_sync() -> str:
     with urllib.request.urlopen("http://ip-api.com/json") as url:

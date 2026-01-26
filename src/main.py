@@ -25,9 +25,11 @@ from observer import MetricsLogger
 import logging
 
 logger.remove()
+logging.basicConfig(level=logging.INFO) # Set global logging level
 logging.getLogger("ollama").setLevel(logging.WARNING)
 logging.getLogger("pipecat").setLevel(logging.WARNING)
 logging.getLogger("asyncio").setLevel(logging.WARNING)
+logging.getLogger("httpx").setLevel(logging.INFO) # Capture HTTP requests
 
 VERBOSE = True
 HARDCODE_INPUT = False

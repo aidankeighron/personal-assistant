@@ -1,5 +1,6 @@
 import os
 import asyncio
+import logging
 from pipecat.services.llm_service import FunctionCallParams
 from pipecat.adapters.schemas.function_schema import FunctionSchema
 
@@ -16,7 +17,12 @@ def _is_safe_path(path: str, base_dir: str) -> bool:
 async def execute_read_file(params: FunctionCallParams):
     """Reads content from a file in the data directory."""
     filename = params.arguments.get("filename")
+    logging.info(f"Read file request for: {filename}")
     content = await asyncio.to_thread(_read_file_sync, filename)
+    if content.startswith("Error"):
+        logging.error(f"Read file error: {content}")
+    else:
+        logging.info(f"Successfully read file {filename}")
     await params.result_callback(content)
 
 def _read_file_sync(filename: str) -> str:
@@ -49,7 +55,12 @@ async def execute_write_file(params: FunctionCallParams):
     """Writes content to a file in the data directory."""
     filename = params.arguments.get("filename")
     content = params.arguments.get("content")
+    logging.info(f"Write file request for: {filename}")
     result = await asyncio.to_thread(_write_file_sync, filename, content)
+    if result.startswith("Error"):
+        logging.error(f"Write file error: {result}")
+    else:
+        logging.info(f"Successfully wrote to {filename}")
     await params.result_callback(result)
 
 def _write_file_sync(filename: str, content: str) -> str:
@@ -84,8 +95,14 @@ write_file = FunctionSchema(
 async def execute_append_to_memory(params: FunctionCallParams):
     """Appends a new line to the memory.txt file."""
     content = params.arguments.get("content")
+    logging.info(f"Append to memory request: {content}")
     result = await asyncio.to_thread(_append_to_memory_sync, content)
+    if result.startswith("Error"):
+         logging.error(f"Memory append error: {result}")
+    else:
+         logging.info("Successfully appended to memory")
     await params.result_callback(result)
+
 
 def _append_to_memory_sync(content: str) -> str:
     try:

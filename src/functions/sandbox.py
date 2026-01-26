@@ -1,6 +1,7 @@
 import sys
 import io
 import contextlib
+import logging
 from pipecat.services.llm_service import FunctionCallParams
 from pipecat.adapters.schemas.function_schema import FunctionSchema
 
@@ -9,6 +10,7 @@ async def execute_run_python_code(params: FunctionCallParams):
     Executes Python code in a restricted environment.
     """
     code = params.arguments.get("code")
+    logging.info(f"Executing sandboxed python code: {code}")
     
     # Allowed modules
     safe_modules = {
@@ -54,9 +56,11 @@ async def execute_run_python_code(params: FunctionCallParams):
         result = output_buffer.getvalue()
     except Exception as e:
         result = f"Error: {e}"
+        logging.error(f"Sandbox execution error: {result}")
     finally:
         output_buffer.close()
     
+    logging.info(f"Sandbox execution result: {result}")
     await params.result_callback(result)
 
 run_python_code = FunctionSchema(
