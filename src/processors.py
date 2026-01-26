@@ -1,5 +1,5 @@
 import asyncio
-from pipecat.frames.frames import Frame, LLMContextFrame, TextFrame, TranscriptionFrame, LLMFullResponseStartFrame, LLMFullResponseEndFrame, StartFrame
+from pipecat.frames.frames import Frame, LLMContextFrame, TextFrame, TranscriptionFrame, LLMFullResponseStartFrame, LLMFullResponseEndFrame, StartFrame, FunctionCallInProgressFrame
 from pipecat.processors.frame_processor import FrameProcessor, FrameDirection
 from pipecat.services.llm_service import LLMContext
 from fuzzywuzzy import process, fuzz
@@ -55,6 +55,8 @@ class ConsoleLogger(FrameProcessor):
             if self._started:
                 self._current_response += frame.text
                 print(frame.text, end="", flush=True)
+        elif isinstance(frame, FunctionCallInProgressFrame):
+            logging.info(f"Jarvis is calling function {frame.function_name} with arguments {frame.arguments}")
         elif isinstance(frame, LLMFullResponseEndFrame):
             if self._current_response:
                 print()
