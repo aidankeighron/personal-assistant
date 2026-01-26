@@ -20,7 +20,7 @@ from processors import WakeWordGate, ConsoleLogger, HardcodedInputInjector
 from ollama import ensure_ollama_running, ensure_model_downloaded
 from tts import LocalPiperTTSService
 from loguru import logger
-from functions import functions
+from functions import functions, basic, sandbox
 from observer import MetricsLogger
 import logging
 
@@ -57,9 +57,20 @@ async def main():
     llm = OLLamaLLMService(model=MODEL_NAME, base_url="http://localhost:11434/v1")
     llm.register_function("search_internet", functions.execute_web_search, cancel_on_interruption=True)
     llm.register_function("get_resource_usage", functions.monitor_resources, cancel_on_interruption=True)
+    llm.register_function("get_current_time", basic.get_current_time, cancel_on_interruption=True)
+    llm.register_function("get_current_location", basic.get_current_location, cancel_on_interruption=True)
+    llm.register_function("get_current_date", basic.get_current_date, cancel_on_interruption=True)
+    llm.register_function("run_python_code", sandbox.run_python_code, cancel_on_interruption=True)
 
     # Context
-    tools = ToolsSchema(standard_tools=[functions.search_internet, functions.get_resource_usage])
+    tools = ToolsSchema(standard_tools=[
+        functions.search_internet, 
+        functions.get_resource_usage,
+        basic.get_current_time,
+        basic.get_current_location,
+        basic.get_current_date,
+        sandbox.run_python_code
+    ])
     system_prompt = open("./tools/system.txt").read()
     function_prompt = open("./tools/functions.txt").read()
     full_system_prompt = f"{system_prompt}\n\n{function_prompt}"

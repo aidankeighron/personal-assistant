@@ -9,3 +9,23 @@ Make sure to add all the relevant information like: "current weather in Lansing 
 monitor_resources
 
 Use this to get the CPU and Memory usage of the program
+
+get_current_time
+
+Use this to get the current local time in "YYYY-MM-DD HH:MM:SS" format.
+
+get_current_date
+
+Use this to get the current date in "YYYY-MM-DD" format.
+
+get_current_location
+
+Use this to get the approximate location (city, region, country) of the user based on their IP address.
+
+run_python_code
+
+Use this to execute Python code in a sandboxed environment.
+The code cannot access the file system, network (except for safe modules), or unsafe builtins.
+Allowed modules: math, random, datetime, json.
+Input is a string of Python code. Returns stdout and stderr.
+Example: run_python_code("import math; print(math.sqrt(16))")
