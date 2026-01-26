@@ -1,4 +1,4 @@
-User prefers 12-hour time format for all time displays.
+User prefers 12-hour format. Note: Always convert to 12-hour format for responses.
 
 Saved user profile to aidan.txt. Profile includes education, work, projects, and preferences.
 
