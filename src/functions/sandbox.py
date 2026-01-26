@@ -1,14 +1,15 @@
 import sys
 import io
 import contextlib
+from pipecat.services.llm_service import FunctionCallParams
+from pipecat.adapters.schemas.function_schema import FunctionSchema
 
-async def run_python_code(code: str) -> str:
+async def execute_run_python_code(params: FunctionCallParams):
     """
     Executes Python code in a restricted environment.
-    Only allows access to safe modules like math, random, datetime.
-    No file system or network access allowed.
-    Returns the stdout and stderr captured during execution.
     """
+    code = params.arguments.get("code")
+    
     # Allowed modules
     safe_modules = {
         'math': __import__('math'),
@@ -45,13 +46,27 @@ async def run_python_code(code: str) -> str:
 
     # Capture output
     output_buffer = io.StringIO()
-    
+    result = ""
     try:
         # Redirect stdout and stderr
         with contextlib.redirect_stdout(output_buffer), contextlib.redirect_stderr(output_buffer):
             exec(code, restricted_globals)
-        return output_buffer.getvalue()
+        result = output_buffer.getvalue()
     except Exception as e:
-        return f"Error: {e}"
+        result = f"Error: {e}"
     finally:
         output_buffer.close()
+    
+    await params.result_callback(result)
+
+run_python_code = FunctionSchema(
+    name="run_python_code",
+    description="Execute Python code in a sandboxed environment",
+    properties={
+        "code": {
+            "type": "string",
+            "description": "The python code to execute",
+        }
+    },
+    required=["code"]
+)

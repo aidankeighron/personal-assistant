@@ -57,13 +57,13 @@ async def main():
     llm = OLLamaLLMService(model=MODEL_NAME, base_url="http://localhost:11434/v1")
     llm.register_function("search_internet", functions.execute_web_search, cancel_on_interruption=True)
     llm.register_function("get_resource_usage", functions.monitor_resources, cancel_on_interruption=True)
-    llm.register_function("get_current_time", basic.get_current_time, cancel_on_interruption=True)
-    llm.register_function("get_current_location", basic.get_current_location, cancel_on_interruption=True)
-    llm.register_function("get_current_date", basic.get_current_date, cancel_on_interruption=True)
-    llm.register_function("run_python_code", sandbox.run_python_code, cancel_on_interruption=True)
-    llm.register_function("read_file", files.read_file, cancel_on_interruption=True)
-    llm.register_function("write_file", files.write_file, cancel_on_interruption=True)
-    llm.register_function("append_to_memory", files.append_to_memory, cancel_on_interruption=True)
+    llm.register_function("get_current_time", basic.execute_get_current_time, cancel_on_interruption=True)
+    llm.register_function("get_current_location", basic.execute_get_current_location, cancel_on_interruption=True)
+    llm.register_function("get_current_date", basic.execute_get_current_date, cancel_on_interruption=True)
+    llm.register_function("run_python_code", sandbox.execute_run_python_code, cancel_on_interruption=True)
+    llm.register_function("read_file", files.execute_read_file, cancel_on_interruption=True)
+    llm.register_function("write_file", files.execute_write_file, cancel_on_interruption=True)
+    llm.register_function("append_to_memory", files.execute_append_to_memory, cancel_on_interruption=True)
 
     # Context
     tools = ToolsSchema(standard_tools=[

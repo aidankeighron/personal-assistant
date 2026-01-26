@@ -1,5 +1,7 @@
 import os
 import asyncio
+from pipecat.services.llm_service import FunctionCallParams
+from pipecat.adapters.schemas.function_schema import FunctionSchema
 
 # Base paths
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -11,9 +13,11 @@ def _is_safe_path(path: str, base_dir: str) -> bool:
     """Ensures the path is within the base_dir."""
     return os.path.abspath(path).startswith(os.path.abspath(base_dir))
 
-async def read_file(filename: str) -> str:
+async def execute_read_file(params: FunctionCallParams):
     """Reads content from a file in the data directory."""
-    return await asyncio.to_thread(_read_file_sync, filename)
+    filename = params.arguments.get("filename")
+    content = await asyncio.to_thread(_read_file_sync, filename)
+    await params.result_callback(content)
 
 def _read_file_sync(filename: str) -> str:
     filepath = os.path.join(DATA_DIR, filename)
@@ -29,9 +33,24 @@ def _read_file_sync(filename: str) -> str:
     except Exception as e:
         return f"Error reading file: {str(e)}"
 
-async def write_file(filename: str, content: str) -> str:
+read_file = FunctionSchema(
+    name="read_file",
+    description="Read the content of a file from the data directory",
+    properties={
+        "filename": {
+            "type": "string",
+            "description": "The name of the file to read",
+        }
+    },
+    required=["filename"]
+)
+
+async def execute_write_file(params: FunctionCallParams):
     """Writes content to a file in the data directory."""
-    return await asyncio.to_thread(_write_file_sync, filename, content)
+    filename = params.arguments.get("filename")
+    content = params.arguments.get("content")
+    result = await asyncio.to_thread(_write_file_sync, filename, content)
+    await params.result_callback(result)
 
 def _write_file_sync(filename: str, content: str) -> str:
     filepath = os.path.join(DATA_DIR, filename)
@@ -46,9 +65,27 @@ def _write_file_sync(filename: str, content: str) -> str:
     except Exception as e:
         return f"Error writing file: {str(e)}"
 
-async def append_to_memory(content: str) -> str:
+write_file = FunctionSchema(
+    name="write_file",
+    description="Write content to a file in the data directory",
+    properties={
+        "filename": {
+            "type": "string",
+            "description": "The name of the file to write to",
+        },
+        "content": {
+            "type": "string",
+            "description": "The content to write to the file",
+        }
+    },
+    required=["filename", "content"]
+)
+
+async def execute_append_to_memory(params: FunctionCallParams):
     """Appends a new line to the memory.txt file."""
-    return await asyncio.to_thread(_append_to_memory_sync, content)
+    content = params.arguments.get("content")
+    result = await asyncio.to_thread(_append_to_memory_sync, content)
+    await params.result_callback(result)
 
 def _append_to_memory_sync(content: str) -> str:
     try:
@@ -57,3 +94,15 @@ def _append_to_memory_sync(content: str) -> str:
         return f"Memory updated with: {content}"
     except Exception as e:
         return f"Error appending to memory: {str(e)}"
+
+append_to_memory = FunctionSchema(
+    name="append_to_memory",
+    description="Append a new line to the long-term memory",
+    properties={
+        "content": {
+            "type": "string",
+            "description": "The content to append to memory",
+        }
+    },
+    required=["content"]
+)
