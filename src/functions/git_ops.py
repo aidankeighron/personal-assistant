@@ -1,7 +1,15 @@
-import subprocess
-import logging
 from pipecat.adapters.schemas.function_schema import FunctionSchema
 from pipecat.services.llm_service import FunctionCallParams
+import asyncio, logging
+
+async def run_command(cmd_list, cwd=None):
+    process = await asyncio.create_subprocess_exec(*cmd_list, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, cwd=cwd)
+    stdout, stderr = await process.communicate()
+    
+    if process.returncode != 0:
+        logging.info(f"Command {' '.join(cmd_list)} failed: {stderr.decode()}")
+    
+    return stdout.decode().strip()
 
 async def execute_agent_git_modification(params: FunctionCallParams):
     prompt = params.arguments.get("prompt")
@@ -13,54 +21,46 @@ async def execute_agent_git_modification(params: FunctionCallParams):
 
     try:
         logging.info(f"Creating branch {branch_name}...")
-        subprocess.run(["git", "checkout", "-b", branch_name], check=True, capture_output=True, text=True, cwd=repo_path)
+        await run_command(["git", "checkout", "-B", branch_name], cwd=repo_path)
 
         logging.info("Running Gemini CLI...")
-        subprocess.run(["gemini", prompt], check=True, capture_output=True, text=True, cwd=repo_path)
+        await run_command(["gemini", prompt], cwd=repo_path)
 
         logging.info("Committing changes...")
-        subprocess.run(["git", "add", "."], check=True, capture_output=True, text=True, cwd=repo_path)
-        subprocess.run(["git", "commit", "-m", f"Apply Gemini changes for: {prompt}"], check=True, capture_output=True, text=True, cwd=repo_path)
+        await run_command(["git", "add", "."], cwd=repo_path)
+        try:
+            await run_command(["git", "commit", "-m", f"Apply Gemini changes: {prompt}"], cwd=repo_path)
+        except Exception as e:
+            if "nothing to commit" in str(e):
+                return {"status": "error", "error": "Gemini CLI made no changes to the code."}
+            raise e
+
+        logging.info("Pushing branch...")
+        await run_command(["git", "push", "-u", "origin", branch_name], cwd=repo_path)
 
         logging.info("Creating PR...")
-        pr_result = subprocess.run(
-            ["gh", "pr", "create", "--title", f"Agent modification: {branch_name}", "--body", prompt],
-            check=True, capture_output=True, text=True, cwd=repo_path
+        pr_url = await run_command(
+            ["gh", "pr", "create", "--title", f"Agent: {branch_name}", "--body", prompt, "--head", branch_name], 
+            cwd=repo_path
         )
         
-        pr_url = pr_result.stdout.strip()
         logging.info(f"PR Created: {pr_url}")
-
         await params.result_callback({"status": "success", "pr_url": pr_url})
         return {"status": "success", "pr_url": pr_url}
 
-    except subprocess.CalledProcessError as e:
-        error_msg = f"Command failed: {e.cmd}. Output: {e.stderr}"
-        logging.error(error_msg)
-        await params.result_callback({"status": "error", "error": error_msg})
-        return {"status": "error", "error": error_msg}
     except Exception as e:
-        error_msg = f"An error occurred: {str(e)}"
+        error_msg = f"Operation failed: {str(e)}"
         logging.error(error_msg)
         await params.result_callback({"status": "error", "error": error_msg})
         return {"status": "error", "error": error_msg}
 
 agent_git_modification = FunctionSchema(
     name="agent_git_modification",
-    description="creates a new branch, uses the gemini cli to edit code, and creates a PR",
+    description="Creates a branch, modifies code via Gemini CLI, pushes changes, and opens a PR.",
     properties={
-        "prompt": {
-            "type": "string",
-            "description": "The instruction for the Gemini CLI to modify the code.",
-        },
-        "branch_name": {
-            "type": "string",
-            "description": "The name of the new git branch to create.",
-        },
-        "repo_path": {
-            "type": "string",
-            "description": "The absolute path to the git repository.",
-        },
+        "prompt": {"type": "string", "description": "Instruction for code modification."},
+        "branch_name": {"type": "string", "description": "Name of the git branch."},
+        "repo_path": {"type": "string", "description": "Absolute path to the repo."},
     },
     required=["prompt", "branch_name", "repo_path"]
 )
