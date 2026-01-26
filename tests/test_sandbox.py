@@ -3,10 +3,13 @@ from unittest.mock import MagicMock
 from src.functions import sandbox
 from pipecat.services.llm_service import FunctionCallParams
 
+import asyncio
+
 def mock_params(code):
     params = MagicMock(spec=FunctionCallParams)
     params.arguments = {"code": code}
-    params.result_callback = MagicMock(return_value=MagicMock())
+    params.result_callback = MagicMock(return_value=asyncio.Future())
+    params.result_callback.return_value.set_result(None)
     return params
 
 @pytest.mark.asyncio
