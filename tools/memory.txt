@@ -1,1 +1,5 @@
 User prefers 12-hour time format for all time displays.
+
+Saved user profile to aidan.txt. Profile includes education, work, projects, and preferences.
+
+User requested auto-update of aidan.txt dot with new information. Now actively logging and updating memory with each interaction to ensure aidan.txt stays current.
