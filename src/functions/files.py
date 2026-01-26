@@ -107,7 +107,7 @@ async def execute_append_to_memory(params: FunctionCallParams):
 def _append_to_memory_sync(content: str) -> str:
     try:
         with open(MEMORY_FILE, 'a', encoding='utf-8') as f:
-            f.write(f"{content}\n")
+            f.write(f"\n{content}")
         return f"Memory updated with: {content}"
     except Exception as e:
         return f"Error appending to memory: {str(e)}"
