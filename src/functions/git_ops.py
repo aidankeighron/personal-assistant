@@ -3,21 +3,26 @@ from pipecat.services.llm_service import FunctionCallParams
 import asyncio, logging
 
 async def run_command(cmd_list, cwd=None):
-    process = await asyncio.create_subprocess_exec(*cmd_list, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, cwd=cwd)
+    cmd_string = " ".join(cmd_list)
+    
+    process = await asyncio.create_subprocess_shell(cmd_string, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, cwd=cwd)
     stdout, stderr = await process.communicate()
     
     if process.returncode != 0:
-        logging.info(f"Command {' '.join(cmd_list)} failed: {stderr.decode()}")
+        raise Exception(f"Command {cmd_string} failed: {stderr.decode()} {stdout.decode()}")
     
     return stdout.decode().strip()
 
 async def execute_agent_git_modification(params: FunctionCallParams):
     prompt = params.arguments.get("prompt")
     branch_name = params.arguments.get("branch_name")
-    repo_path = params.arguments.get("repo_path")
+    repo_name = params.arguments.get("repo_name")
 
-    logging.info(f"Starting agent git modification. Branch: {branch_name}, Prompt: {prompt}, Repo: {repo_path}")
-    await params.result_callback({"status": "processing", "message": f"Starting work on branch {branch_name} in {repo_path}..."})
+    logging.info(f"Starting agent git modification. Branch: {branch_name}, Prompt: {prompt}, Repo: {repo_name}")
+    await params.result_callback({"status": "processing", "message": f"Starting work on branch {branch_name} in {repo_name}..."})
+
+    # repo_path = f"./../{repo_name}"
+    repo_path = "C:\\Users\\aidan\\OneDrive\\Documents\\gravity-simulation"
 
     try:
         logging.info(f"Creating branch {branch_name}...")
@@ -29,7 +34,7 @@ async def execute_agent_git_modification(params: FunctionCallParams):
         logging.info("Committing changes...")
         await run_command(["git", "add", "."], cwd=repo_path)
         try:
-            await run_command(["git", "commit", "-m", f"Apply Gemini changes: {prompt}"], cwd=repo_path)
+            await run_command(["git", "commit", "-m", f"\"Apply Gemini changes: {prompt}\""], cwd=repo_path)
         except Exception as e:
             if "nothing to commit" in str(e):
                 return {"status": "error", "error": "Gemini CLI made no changes to the code."}
@@ -40,7 +45,7 @@ async def execute_agent_git_modification(params: FunctionCallParams):
 
         logging.info("Creating PR...")
         pr_url = await run_command(
-            ["gh", "pr", "create", "--title", f"Agent: {branch_name}", "--body", prompt, "--head", branch_name], 
+            ["gh", "pr", "create", "--title", f"\"Agent: {branch_name}\"", "--body", f"\"{prompt}\"", "--head", branch_name], 
             cwd=repo_path
         )
         
@@ -60,7 +65,30 @@ agent_git_modification = FunctionSchema(
     properties={
         "prompt": {"type": "string", "description": "Instruction for code modification."},
         "branch_name": {"type": "string", "description": "Name of the git branch."},
-        "repo_path": {"type": "string", "description": "Absolute path to the repo."},
+        "repo_name": {"type": "string", "description": "Name of the repo to access. Do not include the aidankeighron/ part of the path just the repo name"},
     },
-    required=["prompt", "branch_name", "repo_path"]
+    required=["prompt", "branch_name", "repo_name"]
 )
+
+class MockParams:
+    def __init__(self, arguments):
+        self.arguments = arguments
+
+    async def result_callback(self, result):
+        print("\n---CALLBACK RECEIVED---")
+        print(f"Data: {result}")
+        
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+if __name__ == "__main__":
+    async def main(): 
+        test_args = {
+            "prompt": "Add a print statement to the main file saying Hello from Gemini Agent",
+            "branch_name": "test-agent-modification",
+            "repo_name": "test"
+        }
+        params = MockParams(arguments=test_args)
+        result = await execute_agent_git_modification(params)
+            
+        print(f"Final Result: {result}")
+
+    asyncio.run(main())
