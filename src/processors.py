@@ -43,6 +43,7 @@ class ConsoleLogger(FrameProcessor):
         super().__init__()
         self._started = False
         self._current_response = ""
+        self._label_printed = False
 
     async def process_frame(self, frame: Frame, direction: FrameDirection):
         await super().process_frame(frame, direction)
@@ -50,9 +51,12 @@ class ConsoleLogger(FrameProcessor):
 
         if isinstance(frame, LLMFullResponseStartFrame):
             self._started = True
-            print("Jarvis: ", end="", flush=True)
         elif isinstance(frame, TextFrame) and not isinstance(frame, TranscriptionFrame):
             if self._started:
+                # Only print the label if we haven't yet for this response, and we have actual text
+                if not self._label_printed and frame.text.strip():
+                     print("Jarvis: ", end="", flush=True)
+                     self._label_printed = True
                 self._current_response += frame.text
                 print(frame.text, end="", flush=True)
         elif isinstance(frame, FunctionCallInProgressFrame):
@@ -63,6 +67,7 @@ class ConsoleLogger(FrameProcessor):
                 logging.info(f"Jarvis: {self._current_response}")
                 self._current_response = ""
             self._started = False
+            self._label_printed = False
 
 class HardcodedInputInjector(FrameProcessor):
     def __init__(self, text: str):
