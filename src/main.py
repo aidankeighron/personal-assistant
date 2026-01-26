@@ -17,7 +17,7 @@ from pipecat.pipeline.runner import PipelineRunner
 from pipecat.pipeline.pipeline import Pipeline
 
 from processors import WakeWordGate, ConsoleLogger, HardcodedInputInjector
-from ollama import ensure_ollama_running, ensure_model_downloaded
+from ollama import ensure_ollama_running, ensure_model_downloaded, unload_model
 from tts import LocalPiperTTSService
 from loguru import logger
 from functions import functions, basic, sandbox, files
@@ -149,4 +149,8 @@ async def main():
 if __name__ == "__main__":
     ensure_ollama_running()
     ensure_model_downloaded(MODEL_NAME)
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    finally:
+        unload_model(MODEL_NAME)
+        print("System shutdown complete.")
