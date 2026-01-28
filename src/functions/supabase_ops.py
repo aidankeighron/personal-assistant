@@ -32,6 +32,11 @@ def load_supabase_credentials():
 
 load_supabase_credentials()
 
+# Device UUID to label mapping
+DEVICE_LABELS = {
+    "mkyjyzly-1g2489llmou": "Desktop"
+}
+
 async def execute_get_habits(params: FunctionCallParams):
     days = params.arguments.get("days", 7)
     logging.info(f"Getting habits for past {days} days")
@@ -120,8 +125,11 @@ async def execute_get_website_usage(params: FunctionCallParams):
         for entry in data:
             date = entry.get("date")
             website = entry.get("website")
-            device = entry.get("device", "unknown")
+            device_uuid = entry.get("device", "unknown")
             timespent = entry.get("timespent")
+            
+            # Map device UUID to friendly label
+            device = DEVICE_LABELS.get(device_uuid, "unknown")
             
             if date not in grouped_data:
                 grouped_data[date] = {}
