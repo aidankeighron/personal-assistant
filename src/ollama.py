@@ -71,6 +71,13 @@ def unload_model(model_name: str):
         urllib.request.urlopen(req)
         print(f"Model '{model_name}' has been unloaded.")
         logging.info(f"Model '{model_name}' unloaded successfully.")
+    except urllib.error.URLError as e:
+        if isinstance(e.reason, ConnectionRefusedError) or (hasattr(e.reason, 'winerror') and e.reason.winerror == 10061):
+             print(f"Ollama is unreachable (likely stopped). Skipping model unload.")
+             logging.info(f"Ollama unreachable during unload: {e}")
+        else:
+             print(f"Warning: Failed to unload model: {e}")
+             logging.error(f"Warning: Failed to unload model: {e}")
     except Exception as e:
         print(f"Warning: Failed to unload model: {e}")
         logging.error(f"Warning: Failed to unload model: {e}")
