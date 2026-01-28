@@ -7,6 +7,7 @@ import threading
 from typing import Optional
 from plyer import notification
 import winsound
+import time
 
 # Store active alarms
 active_alarms = {}
@@ -17,7 +18,7 @@ def _play_alarm_sound():
 
     for freq, dur in sounds:
         winsound.Beep(freq, dur)
-        asyncio.sleep(dur / 1000.0)
+        time.sleep(dur / 1000.0)
 
 if __name__ == "__main__":
     _play_alarm_sound()
