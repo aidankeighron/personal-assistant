@@ -28,6 +28,12 @@ import logging
 logger.remove()
 setup_logging()
 
+# TODO text mode
+# TODO command alias
+# TODO connect to PostgresSQL
+# TODO connect to HalfFull
+# TODO get website usage data
+
 VERBOSE = True
 HARDCODE_INPUT = False
 HARDCODED_INPUT_TEXT = "Jarvis What is the current weather, use the search_internet function"
