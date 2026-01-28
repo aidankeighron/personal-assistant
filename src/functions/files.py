@@ -45,7 +45,9 @@ async def execute_read_file(params: FunctionCallParams):
     if content.startswith("Error"):
         logging.error(f"Read file error: {content}")
     else:
-        logging.info(f"Successfully read file {filename}")
+        # Log output with truncation to prevent bloat
+        log_output = content[:500] + "..." if len(content) > 500 else content
+        logging.info(f"Successfully read file {filename}, output: {log_output}")
     await params.result_callback(content)
 
 def _read_file_sync(filename: str) -> str:

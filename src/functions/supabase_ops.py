@@ -66,6 +66,11 @@ async def execute_get_habits(params: FunctionCallParams):
             grouped_data[date][habit] = value
 
         formatted_result = f"[SYSTEM FETCHED DATA: HABITS]:\n\n{json.dumps(grouped_data, indent=2)}\n\n[END DATA]"
+        
+        # Log output with truncation to prevent bloat
+        log_output = formatted_result[:500] + "..." if len(formatted_result) > 500 else formatted_result
+        logging.info(f"get_habits output: {log_output}")
+        
         await params.result_callback({"result": formatted_result})
         
     except Exception as e:
@@ -123,6 +128,11 @@ async def execute_get_website_usage(params: FunctionCallParams):
             grouped_data[date][website] = round(timespent / 60, 1)
 
         formatted_result = f"[SYSTEM FETCHED DATA: WEBSITE USAGE (Minutes)]:\n\n{json.dumps(grouped_data, indent=2)}\n\n[END DATA]"
+        
+        # Log output with truncation to prevent bloat
+        log_output = formatted_result[:500] + "..." if len(formatted_result) > 500 else formatted_result
+        logging.info(f"get_website_usage output: {log_output}")
+        
         await params.result_callback({"result": formatted_result})
 
     except Exception as e:

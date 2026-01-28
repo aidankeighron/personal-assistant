@@ -60,7 +60,10 @@ async def execute_run_python_code(params: FunctionCallParams):
     finally:
         output_buffer.close()
     
-    logging.info(f"Sandbox execution result: {result}")
+    # Log output with truncation to prevent bloat
+    log_output = result[:300] + "..." if len(result) > 300 else result
+    logging.info(f"Sandbox execution result: {log_output}")
+    
     await params.result_callback(result)
 
 run_python_code = FunctionSchema(

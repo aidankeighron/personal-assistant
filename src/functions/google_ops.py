@@ -97,7 +97,11 @@ async def execute_get_recent_emails(params: FunctionCallParams):
             
     logging.info(f"Calling get_recent_emails with limit={limit}")
     result = await asyncio.to_thread(_get_recent_emails_sync, limit=limit)
-    logging.info("get_recent_emails completed")
+    
+    # Log output with truncation to prevent bloat
+    log_output = result[:500] + "..." if len(result) > 500 else result
+    logging.info(f"get_recent_emails output: {log_output}")
+    
     await params.result_callback(result)
 
 get_recent_emails = FunctionSchema(
@@ -164,7 +168,11 @@ async def execute_get_calendar_events(params: FunctionCallParams):
 
     logging.info(f"Calling get_calendar_events with days={days}")
     result = await asyncio.to_thread(_get_calendar_events_sync, days=days)
-    logging.info("get_calendar_events completed")
+    
+    # Log output with truncation to prevent bloat
+    log_output = result[:500] + "..." if len(result) > 500 else result
+    logging.info(f"get_calendar_events output: {log_output}")
+    
     await params.result_callback(result)
 
 get_calendar_events = FunctionSchema(
