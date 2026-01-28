@@ -73,7 +73,11 @@ def _get_recent_emails_sync(limit=50):
             date = next((h['value'] for h in headers if h['name'] == 'Date'), 'Unknown Date')
             snippet = msg.get('snippet', '')
             
-            email_info = f"From: {sender} | Date: {date} | Subject: {subject} | Snippet: {snippet}"
+            # Check for UNREAD label
+            label_ids = msg.get('labelIds', [])
+            status = "Unread" if "UNREAD" in label_ids else "Read"
+            
+            email_info = f"From: {sender} | Date: {date} | Status: {status} | Subject: {subject} | Snippet: {snippet}"
             email_data.append(email_info)
 
         return "\n\n".join(email_data)
