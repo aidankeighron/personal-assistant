@@ -22,11 +22,7 @@ CREDENTIALS_FILE = os.path.join(TOOLS_DIR, "google_credentials.json")
 TOKEN_FILE = os.path.join(TOOLS_DIR, "google_token.json")
 
 def _get_creds():
-    """Gets valid user credentials from storage."""
     creds = None
-    # The file token.json stores the user's access and refresh tokens, and is
-    # created automatically when the authorization flow completes for the first
-    # time.
     if os.path.exists(TOKEN_FILE):
         creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
     
