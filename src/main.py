@@ -145,6 +145,9 @@ async def main():
         await runner.run(task)
     except KeyboardInterrupt:
         await task.cancel()
+    except Exception as e:
+        logger.exception(f"Unexpected error in main loop: {e}")
+        await task.cancel()
 
 if __name__ == "__main__":
     ensure_ollama_running()

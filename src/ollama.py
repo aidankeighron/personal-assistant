@@ -51,7 +51,8 @@ def ensure_model_downloaded(model_name: str):
     data = json.dumps({"model": model_name, "keep_alive": -1}).encode("utf-8")
     
     try:
-        urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})            
+        req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
+        urllib.request.urlopen(req)
         print(f"Model '{model_name}' is now loaded and will stay in memory.")
         logging.info(f"Model '{model_name}' set to keep_alive=-1 successfully.")
     except Exception as e:
@@ -66,7 +67,8 @@ def unload_model(model_name: str):
     data = json.dumps({"model": model_name, "keep_alive": 0}).encode("utf-8")
     
     try:
-        urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
+        req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
+        urllib.request.urlopen(req)
         print(f"Model '{model_name}' has been unloaded.")
         logging.info(f"Model '{model_name}' unloaded successfully.")
     except Exception as e:
