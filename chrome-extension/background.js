@@ -1,6 +1,6 @@
 // Personal Assistant Website Blocker - Background Service Worker
 
-const COMMAND_FILE_PATH = 'C:/Users/aidan/OneDrive/Documents/personal-assistant/.extension-data/block-commands.json';
+const COMMAND_FILE_PATH = 'C:/Users/Billy1301/Documents/Programming/Programs/personal-assistant/.extension-data/block-commands.json';
 const POLL_INTERVAL_MS = 2000; // Poll every 2 seconds
 const DYNAMIC_RULE_ID_START = 1000;
 
