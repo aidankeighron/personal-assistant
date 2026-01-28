@@ -16,4 +16,7 @@ dependencies = [
     "sounddevice>=0.5.3",
     "tavily-python>=0.7.19",
     "websockets>=16.0",
+    "google-api-python-client",
+    "google-auth-httplib2",
+    "google-auth-oauthlib",
 ]
