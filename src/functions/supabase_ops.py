@@ -84,7 +84,7 @@ async def execute_get_habits(params: FunctionCallParams):
 
 get_habits_schema = FunctionSchema(
     name="get_habits",
-    description="Get habit tracking data for the past N days. Includes current day.",
+    description="Get habit tracking data for the past N days. Includes current day. User is trying to dring 8 water a day, eat 3 food a day, and strect 2 a day.",
     properties={
         "days": {
             "type": "integer",
