@@ -14,7 +14,7 @@ active_blocks: Dict[int, Dict] = {}
 block_counter = 0
 
 # Command file location - use current user's directory
-COMMAND_FILE_PATH = r"C:\Users\Billy1301\Documents\Programming\Programs\personal-assistant"
+COMMAND_FILE_PATH = r"C:\Users\Billy1301\Documents\Programming\Programs\personal-assistant\.extension-data\block-commands.json"
 
 def _normalize_domain(url_or_domain: str) -> str:
     """Extract clean domain from URL or domain string."""
