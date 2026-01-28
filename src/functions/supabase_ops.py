@@ -8,7 +8,7 @@ from pipecat.services.llm_service import FunctionCallParams
 from supabase import create_client, Client
 
 # Attempt to load secrets
-SECRETS_FILE = "secrets.json"
+SECRETS_FILE = "credentials.json"
 supabase: Optional[Any] = None
 
 def load_supabase_credentials():
