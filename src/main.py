@@ -20,7 +20,7 @@ from processors import WakeWordGate, ConsoleLogger, HardcodedInputInjector
 from ollama import ensure_ollama_running, ensure_model_downloaded, unload_model
 from tts import LocalPiperTTSService
 from loguru import logger
-from functions import functions, basic, sandbox, files, git_ops
+from functions import functions, basic, sandbox, files
 from observer import MetricsLogger, setup_logging
 from config import get_config
 import logging
@@ -66,7 +66,6 @@ async def main():
     llm.register_function("write_file", files.execute_write_file, cancel_on_interruption=True)
     llm.register_function("append_to_memory", files.execute_append_to_memory, cancel_on_interruption=True)
     llm.register_function("list_files", files.execute_list_files, cancel_on_interruption=True)
-    # llm.register_function("agent_git_modification", git_ops.execute_agent_git_modification, cancel_on_interruption=True)
 
     # Context
     tools = ToolsSchema(standard_tools=[
@@ -80,7 +79,6 @@ async def main():
         files.write_file,
         files.append_to_memory,
         files.list_files,
-        # git_ops.agent_git_modification
     ])
     system_prompt = open("./tools/system.txt").read()
     # function_prompt = open("./tools/functions.txt").read()
@@ -100,7 +98,6 @@ async def main():
     )
 
     # Smart Turn Aggregators
-    # user_aggregator, assistant_aggregator = LLMContextAggregatorPair(context)
     if HARDCODE_INPUT:
         user_aggregator, assistant_aggregator = LLMContextAggregatorPair(context)
     else:
@@ -141,7 +138,7 @@ async def main():
     ), observers=[MetricsLogger()], idle_timeout_secs=60*60)
 
     @task.event_handler("on_idle_timeout")
-    async def on_idle_handler(task):
+    async def on_idle_handler():
         print("WARNING: Pipeline finishing due to idle timeout.")
         logging.warning("Pipeline finishing due to idle timeout.")
 
