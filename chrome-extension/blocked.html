@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Website Blocked</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+    
+    .container {
+      text-align: center;
+      max-width: 600px;
+      padding: 40px;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+    }
+    
+    .icon {
+      font-size: 80px;
+      margin-bottom: 20px;
+    }
+    
+    h1 {
+      font-size: 36px;
+      margin-bottom: 20px;
+      font-weight: 600;
+    }
+    
+    .message {
+      font-size: 18px;
+      line-height: 1.6;
+      margin-bottom: 30px;
+      opacity: 0.9;
+    }
+    
+    .quote {
+      font-style: italic;
+      font-size: 16px;
+      opacity: 0.8;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      margin-top: 30px;
+    }
+    
+    .time-info {
+      font-size: 14px;
+      opacity: 0.7;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">🚫</div>
+    <h1>Website Blocked</h1>
+    <div class="message">
+      This website has been blocked to help you stay focused.
+      <br><br>
+      Your Personal Assistant is helping you maintain productivity by temporarily restricting access to distracting sites.
+    </div>
+    
+    <div class="quote">
+      "The key is not to prioritize what's on your schedule, but to schedule your priorities."
+      <br>— Stephen Covey
+    </div>
+    
+    <div class="time-info" id="timeInfo">
+      <!-- Will be populated by JavaScript if needed -->
+    </div>
+  </div>
+  
+  <script>
+    // Get the blocked URL from the current page
+    const blockedUrl = window.location.href;
+    console.log('Blocked URL:', blockedUrl);
+  </script>
+</body>
+</html>

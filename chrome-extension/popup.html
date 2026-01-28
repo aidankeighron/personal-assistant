@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Website Blocker</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      width: 350px;
+      min-height: 200px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      padding: 16px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    h1 {
+      font-size: 18px;
+      margin-bottom: 16px;
+      font-weight: 600;
+    }
+    
+    .status {
+      font-size: 14px;
+      margin-bottom: 16px;
+      opacity: 0.9;
+    }
+    
+    .blocked-sites {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    
+    .site-item {
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .site-item:last-child {
+      border-bottom: none;
+    }
+    
+    .site-domain {
+      font-weight: 500;
+      font-size: 14px;
+    }
+    
+    .site-time {
+      font-size: 12px;
+      opacity: 0.7;
+      margin-top: 4px;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 20px;
+      opacity: 0.7;
+      font-size: 14px;
+    }
+    
+    .footer {
+      margin-top: 12px;
+      font-size: 11px;
+      opacity: 0.6;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>🚫 Website Blocker</h1>
+  <div class="status" id="status">Loading...</div>
+  <div class="blocked-sites" id="blockedSites">
+    <div class="empty-state">No websites currently blocked</div>
+  </div>
+  <div class="footer">Personal Assistant</div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
