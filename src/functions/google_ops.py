@@ -51,7 +51,7 @@ def _get_creds():
 def _get_recent_emails_sync(limit=50):
     try:
         creds = _get_creds()
-        service = build('gmail', 'v1', credentials=creds)
+        service = build('gmail', 'v1', credentials=creds, cache_discovery=False)
 
         # Call the Gmail API
         results = service.users().messages().list(userId='me', maxResults=limit).execute()
@@ -108,7 +108,7 @@ get_recent_emails = FunctionSchema(
 def _get_calendar_events_sync():
     try:
         creds = _get_creds()
-        service = build('calendar', 'v3', credentials=creds)
+        service = build('calendar', 'v3', credentials=creds, cache_discovery=False)
 
         # Calculate time range: -2 weeks to +2 months
         now = datetime.datetime.utcnow()
