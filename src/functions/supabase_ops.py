@@ -51,7 +51,21 @@ async def execute_get_habits(params: FunctionCallParams):
             .execute()
             
         data = response.data
-        formatted_result = f"[SYSTEM FETCHED DATA: HABITS]:\n\n{json.dumps(data, indent=2)}\n\n[END DATA]"
+        
+        # Flatten data: Group by date
+        # { "2024-01-01": { "run": 30, "read": 10 }, ... }
+        grouped_data = {}
+        for entry in data:
+            date = entry.get("date")
+            habit = entry.get("habit_type")
+            value = entry.get("value")
+            
+            if date not in grouped_data:
+                grouped_data[date] = {}
+            
+            grouped_data[date][habit] = value
+
+        formatted_result = f"[SYSTEM FETCHED DATA: HABITS]:\n\n{json.dumps(grouped_data, indent=2)}\n\n[END DATA]"
         await params.result_callback({"result": formatted_result})
         
     except Exception as e:
@@ -94,7 +108,21 @@ async def execute_get_website_usage(params: FunctionCallParams):
             .execute()
 
         data = response.data
-        formatted_result = f"[SYSTEM FETCHED DATA: WEBSITE USAGE]:\n\n{json.dumps(data, indent=2)}\n\n[END DATA]"
+
+        # Flatten data: Group by date
+        # { "2024-01-01": { "google.com": 120, "github.com": 300 }, ... }
+        grouped_data = {}
+        for entry in data:
+            date = entry.get("date")
+            website = entry.get("website")
+            timespent = entry.get("timespent")
+            
+            if date not in grouped_data:
+                grouped_data[date] = {}
+            
+            grouped_data[date][website] = round(timespent / 60, 1)
+
+        formatted_result = f"[SYSTEM FETCHED DATA: WEBSITE USAGE (Minutes)]:\n\n{json.dumps(grouped_data, indent=2)}\n\n[END DATA]"
         await params.result_callback({"result": formatted_result})
 
     except Exception as e:
@@ -103,7 +131,7 @@ async def execute_get_website_usage(params: FunctionCallParams):
 
 get_website_usage_schema = FunctionSchema(
     name="get_website_usage",
-    description="Get website usage data for the past N days. Filters for usage > 10 minutes.",
+    description="Get website usage data for the past N days. Filters for usage > 10 minutes. Returns values in minutes.",
     properties={
         "days": {
             "type": "integer",
