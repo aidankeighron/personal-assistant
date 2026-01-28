@@ -224,3 +224,4 @@ __marimo__/
 /logs
 tools/google_credentials.json
 tools/google_token.json
+secrets.json

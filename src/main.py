@@ -20,7 +20,7 @@ from processors import WakeWordGate, ConsoleLogger, HardcodedInputInjector
 from ollama import ensure_ollama_running, ensure_model_downloaded, unload_model
 from tts import LocalPiperTTSService
 from loguru import logger
-from functions import functions, basic, sandbox, files, google_ops
+from functions import functions, basic, sandbox, files, google_ops, supabase_ops
 from observer import MetricsLogger, setup_logging
 from config import get_config
 import logging
@@ -74,6 +74,8 @@ async def main():
     llm.register_function("list_files", files.execute_list_files, cancel_on_interruption=True)
     llm.register_function("get_recent_emails", google_ops.execute_get_recent_emails, cancel_on_interruption=True)
     llm.register_function("get_calendar_events", google_ops.execute_get_calendar_events, cancel_on_interruption=True)
+    llm.register_function("get_habits", supabase_ops.execute_get_habits, cancel_on_interruption=True)
+    llm.register_function("get_website_usage", supabase_ops.execute_get_website_usage, cancel_on_interruption=True)
 
     # Context
     tools = ToolsSchema(standard_tools=[
@@ -89,6 +91,8 @@ async def main():
         files.list_files,
         google_ops.get_recent_emails,
         google_ops.get_calendar_events,
+        supabase_ops.get_habits_schema,
+        supabase_ops.get_website_usage_schema,
     ])
     system_prompt = open("./tools/system.txt").read()
     # function_prompt = open("./tools/functions.txt").read()
