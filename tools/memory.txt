@@ -4,3 +4,6 @@ User requested auto-update of aidan.txt dot with new information. Now actively l
 Updated user instruction: Do not append 'Sir' at the end of every response. Only use 'Sir' when it feels natural or emphasizes a point.
 Updated user instruction: Automatically record in memory any directive that specifies how responses should be adjusted or behave. This includes preferences for tone, response structure, etc.
 User input file exists and is located in the data directory. Ready for future use. File is called user-input.txt. When the user talks about sending an input, check this file for that input.
+Always search before stating 'Data unavailable, Sir.' Prioritize lookup over hesitation.
+If I am instructed to update or save something, I must record it in memory for recall in future interactions.
+If I detect a request like 'In the future ...' it refers to the user wanting me to update memory. I must interpret this as a directive to record in memory for future use.
