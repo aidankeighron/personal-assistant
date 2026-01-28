@@ -80,17 +80,29 @@ def _get_recent_emails_sync(limit=50):
         return f"Error fetching emails: {str(e)}"
 
 async def execute_get_recent_emails(params: FunctionCallParams):
-    """Fetches the last 50 emails from Gmail."""
-    logging.info("Calling get_recent_emails")
-    result = await asyncio.to_thread(_get_recent_emails_sync)
+    """Fetches the last N emails from Gmail (default 5)."""
+    limit = params.arguments.get("limit", 5)
+    if isinstance(limit, str):
+        try:
+            limit = int(limit)
+        except ValueError:
+            limit = 5
+            
+    logging.info(f"Calling get_recent_emails with limit={limit}")
+    result = await asyncio.to_thread(_get_recent_emails_sync, limit=limit)
     logging.info("get_recent_emails completed")
     await params.result_callback(result)
 
 get_recent_emails = FunctionSchema(
     name="get_recent_emails",
-    description="Get the last 50 emails from the user's Gmail account, including sender, subject, date, and a snippet of the content.",
-    properties={},
-    required=[]
+    description="Get the most recent emails from the user's Gmail account. DEFAULT: 5. Use 'limit' to request fewer (e.g., 1 for most recent).",
+    properties={
+        "limit": {
+            "type": "integer",
+            "description": "The number of emails to retrieve. Default is 5. Set to 1 for just the latest email.",
+        }
+    },
+    required=["limit"]
 )
 
 def _get_calendar_events_sync():
