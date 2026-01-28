@@ -44,17 +44,17 @@ def ensure_model_downloaded(model_name: str):
         logging.error(f"Error checking/downloading model: {e}")
 
     # We send an empty generation request with keep_alive: -1 to load it into RAM indefinitely.
-    print(f"Setting model '{model_name}' to keep_alive=-1 (indefinite)...")
-    logging.info(f"Setting model '{model_name}' to keep_alive=-1")
+    print(f"Setting model '{model_name}' to keep_alive=60m...")
+    logging.info(f"Setting model '{model_name}' to keep_alive=60m")
     
     url = "http://localhost:11434/api/generate"
-    data = json.dumps({"model": model_name, "keep_alive": -1}).encode("utf-8")
+    data = json.dumps({"model": model_name, "keep_alive": "60m"}).encode("utf-8")
     
     try:
         req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
         urllib.request.urlopen(req)
         print(f"Model '{model_name}' is now loaded and will stay in memory.")
-        logging.info(f"Model '{model_name}' set to keep_alive=-1 successfully.")
+        logging.info(f"Model '{model_name}' set to keep_alive=60m successfully.")
     except Exception as e:
         print(f"Warning: Failed to set keep_alive for model: {e}")
         logging.error(f"Warning: Failed to set keep_alive for model: {e}")
