@@ -114,18 +114,21 @@ async def execute_get_website_usage(params: FunctionCallParams):
 
         data = response.data
 
-        # Flatten data: Group by date
-        # { "2024-01-01": { "google.com": 120, "github.com": 300 }, ... }
+        # Flatten data: Group by date, include device
+        # { "2024-01-01": { "google.com (desktop)": 120, "github.com (mobile)": 300 }, ... }
         grouped_data = {}
         for entry in data:
             date = entry.get("date")
             website = entry.get("website")
+            device = entry.get("device", "unknown")
             timespent = entry.get("timespent")
             
             if date not in grouped_data:
                 grouped_data[date] = {}
             
-            grouped_data[date][website] = round(timespent / 60, 1)
+            # Include device in the key to track same website on different devices separately
+            website_key = f"{website} ({device})"
+            grouped_data[date][website_key] = round(timespent / 60, 1)
 
         formatted_result = f"[SYSTEM FETCHED DATA: WEBSITE USAGE (Minutes)]:\n\n{json.dumps(grouped_data, indent=2)}\n\n[END DATA]"
         
@@ -141,7 +144,7 @@ async def execute_get_website_usage(params: FunctionCallParams):
 
 get_website_usage_schema = FunctionSchema(
     name="get_website_usage",
-    description="Get website usage data for the past N days. Filters for usage > 10 minutes. Returns values in minutes.",
+    description="Get website usage data for the past N days. Filters for usage > 10 minutes. Returns values in minutes. Tracks usage separately by device (e.g., desktop, mobile, unknown).",
     properties={
         "days": {
             "type": "integer",
