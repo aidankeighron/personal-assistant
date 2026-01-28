@@ -111,15 +111,15 @@ get_recent_emails = FunctionSchema(
     required=["limit"]
 )
 
-def _get_calendar_events_sync():
+def _get_calendar_events_sync(days=7):
     try:
         creds = _get_creds()
         service = build('calendar', 'v3', credentials=creds, cache_discovery=False)
 
-        # Calculate time range: -2 weeks to +2 months
+        # Calculate time range: -2 weeks to +N days
         now = datetime.datetime.utcnow()
         start_time = (now - datetime.timedelta(weeks=2)).isoformat() + 'Z'  # 'Z' indicates UTC time
-        end_time = (now + datetime.timedelta(days=60)).isoformat() + 'Z'
+        end_time = (now + datetime.timedelta(days=days)).isoformat() + 'Z'
 
         logging.info(f"Fetching calendar events from {start_time} to {end_time}")
 
@@ -152,15 +152,27 @@ def _get_calendar_events_sync():
         return f"Error fetching calendar events: {str(e)}"
 
 async def execute_get_calendar_events(params: FunctionCallParams):
-    """Fetches calendar events for the last 2 weeks and next 2 months."""
-    logging.info("Calling get_calendar_events")
-    result = await asyncio.to_thread(_get_calendar_events_sync)
+    """Fetches calendar events for the last 2 weeks and next N days (default 7)."""
+    days = params.arguments.get("days", 7)
+    if isinstance(days, str):
+        try:
+            days = int(days)
+        except ValueError:
+            days = 7
+
+    logging.info(f"Calling get_calendar_events with days={days}")
+    result = await asyncio.to_thread(_get_calendar_events_sync, days=days)
     logging.info("get_calendar_events completed")
     await params.result_callback(result)
 
 get_calendar_events = FunctionSchema(
     name="get_calendar_events",
-    description="Get Google Calendar events for the past 2 weeks and upcoming 2 months. Returns event title, time, location, and description.",
-    properties={},
-    required=[]
+    description="Get Google Calendar events. Default: next 7 days. Use 'days' to specify range (e.g., 1 for tomorrow).",
+    properties={
+        "days": {
+            "type": "integer",
+            "description": "Number of days in the future to look up. Default 7. Set to 1 for just today/tomorrow.",
+        }
+    },
+    required=["days"]
 )
