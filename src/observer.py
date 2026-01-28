@@ -7,11 +7,15 @@ from collections import deque
 import logging, os
 
 def setup_logging():
+    log_dir = Path("logs")
+    log_dir.mkdir(exist_ok=True)
+
     logging.basicConfig(
-        filename=f'./logs/{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.txt', 
+        filename=log_dir / f'{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.txt', 
         level=logging.INFO, 
         format='%(asctime)s - %(levelname)s - %(message)s', 
-        filemode='w'
+        filemode='w',
+        force=True
     )
 
     # Delete old logs
