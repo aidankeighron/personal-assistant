@@ -21,15 +21,11 @@ from ollama import ensure_ollama_running, ensure_model_downloaded, unload_model
 from tts import LocalPiperTTSService
 from loguru import logger
 from functions import functions, basic, sandbox, files, git_ops
-from observer import MetricsLogger
+from observer import MetricsLogger, setup_logging
 import logging
 
 logger.remove()
-logging.basicConfig(level=logging.INFO) # Set global logging level
-logging.getLogger("ollama").setLevel(logging.WARNING)
-logging.getLogger("pipecat").setLevel(logging.WARNING)
-logging.getLogger("asyncio").setLevel(logging.WARNING)
-logging.getLogger("httpx").setLevel(logging.WARNING)
+setup_logging()
 
 VERBOSE = True
 HARDCODE_INPUT = False

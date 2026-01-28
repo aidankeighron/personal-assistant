@@ -1,28 +1,35 @@
 from pipecat.observers.base_observer import BaseObserver, FramePushed, FrameProcessed
-from pipecat.frames.frames import MetricsFrame, BotStartedSpeakingFrame
-from pipecat.processors.frame_processor import FrameDirection
+from pipecat.frames.frames import MetricsFrame
 from datetime import datetime
 from pipecat.metrics.metrics import LLMUsageMetricsData, ProcessingMetricsData, TTFBMetricsData, TTSUsageMetricsData
 from pathlib import Path
 from collections import deque
 import logging, os
 
-logging.basicConfig(
-    filename=f'./logs/{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.txt', 
-    level=logging.INFO, 
-    format='%(asctime)s - %(levelname)s - %(message)s', 
-    filemode='w'
-)
+def setup_logging():
+    logging.basicConfig(
+        filename=f'./logs/{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.txt', 
+        level=logging.INFO, 
+        format='%(asctime)s - %(levelname)s - %(message)s', 
+        filemode='w'
+    )
 
-# Delete old logs
-files = sorted(Path("./logs").glob("*.txt"), key=os.path.getmtime)
-total_files = 5
-if len(files) > total_files:
-    for file in files[:-total_files]:
-        try:
-            os.remove(file)
-        except:
-            ...
+    # Delete old logs
+    files = sorted(Path("logs").glob("*.txt"), key=os.path.getmtime)
+    total_files = 5
+    if len(files) > total_files:
+        for f in files[:-total_files]:
+            try:
+                os.remove(f)
+            except Exception:
+                ...
+
+    logging.getLogger("ollama").setLevel(logging.WARNING)
+    logging.getLogger("pipecat").setLevel(logging.WARNING)
+    logging.getLogger("asyncio").setLevel(logging.WARNING)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
+    logging.getLogger("websockets").setLevel(logging.WARNING)
 
 class MetricsLogger(BaseObserver):
     def __init__(self):
