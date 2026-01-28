@@ -54,8 +54,10 @@ def _get_recent_emails_sync(limit=50):
         service = build('gmail', 'v1', credentials=creds, cache_discovery=False)
 
         # Call the Gmail API
-        results = service.users().messages().list(userId='me', maxResults=limit).execute()
+        results = service.users().messages().list(userId='me', maxResults=limit, labelIds=['INBOX']).execute()
         messages = results.get('messages', [])
+
+        logging.info(f"Found {len(messages)} emails in INBOX (limit={limit})")
 
         if not messages:
             return "No emails found."
