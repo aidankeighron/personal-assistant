@@ -15,7 +15,7 @@ async def execute_get_current_time(params: FunctionCallParams):
 
 get_current_time = FunctionSchema(
     name="get_current_time",
-    description="Get the current local time in YYYY-MM-DD HH:MM:SS format",
+    description="Use this to get the current local time in 'YYYY-MM-DD HH:MM:SS' format.",
     properties={},
     required=[]
 )
@@ -29,7 +29,7 @@ async def execute_get_current_date(params: FunctionCallParams):
 
 get_current_date = FunctionSchema(
     name="get_current_date",
-    description="Get the current date in YYYY-MM-DD format",
+    description="Use this to get the current date in 'YYYY-MM-DD' format.",
     properties={},
     required=[]
 )
@@ -57,7 +57,7 @@ def _get_location_sync() -> str:
 
 get_current_location = FunctionSchema(
     name="get_current_location",
-    description="Get the approximate location (city, region, country) based on IP address",
+    description="Use this to get the approximate location (city, region, country) of the user based on their IP address.",
     properties={},
     required=[]
 )

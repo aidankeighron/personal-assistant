@@ -32,7 +32,7 @@ async def execute_list_files(params: FunctionCallParams):
 
 list_files = FunctionSchema(
     name="list_files",
-    description="List all available files in the data directory. Use this to see what files you can read.",
+    description="Use this to see all available files in the data directory. No arguments required.",
     properties={},
     required=[]
 )
@@ -65,7 +65,7 @@ def _read_file_sync(filename: str) -> str:
 
 read_file = FunctionSchema(
     name="read_file",
-    description="Read the content of a file from the data directory. Do not add the /data prefix that is automatically applied",
+    description="Use this to read the entire contents of a file in the data directory. Do not add the /data prefix that is automatically applied.",
     properties={
         "filename": {
             "type": "string",
@@ -102,7 +102,7 @@ def _write_file_sync(filename: str, content: str) -> str:
 
 write_file = FunctionSchema(
     name="write_file",
-    description="Write content to a file in the data directory. Do not add the /data prefix that is automatically applied",
+    description="Use this to write content to a file in the data directory. Do not add the /data prefix that is automatically applied.",
     properties={
         "filename": {
             "type": "string",
@@ -138,7 +138,7 @@ def _append_to_memory_sync(content: str) -> str:
 
 append_to_memory = FunctionSchema(
     name="append_to_memory",
-    description="Append a new line to the long-term memory",
+    description="Use this to append a new line to your long-term memory file. Use this for remembering facts about the user, preferences, or important project details.",
     properties={
         "content": {
             "type": "string",

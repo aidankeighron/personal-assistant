@@ -65,7 +65,7 @@ async def execute_run_python_code(params: FunctionCallParams):
 
 run_python_code = FunctionSchema(
     name="run_python_code",
-    description="Execute Python code in a sandboxed environment",
+    description="Use this to execute Python code in a sandboxed environment. The code cannot access the file system, network (except for safe modules), or unsafe builtins. Allowed modules: math, random, datetime, json. Input is a string of Python code. Returns stdout and stderr. Example: run_python_code(code='import math; print(math.sqrt(16))')",
     properties={
         "code": {
             "type": "string",

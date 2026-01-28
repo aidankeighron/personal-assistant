@@ -17,7 +17,7 @@ async def execute_web_search(params: FunctionCallParams):
 
 search_internet = FunctionSchema(
     name="search_internet",
-    description="Search the internet for current information",
+    description="Use this to search the internet for any additional information. Make sure to provide a descriptive search query, e.g., 'current weather in Lansing Michigan' instead of 'current weather'.",
     properties={
         "query": {
             "type": "string",
@@ -41,6 +41,6 @@ async def monitor_resources(params: FunctionCallParams):
 
 get_resource_usage = FunctionSchema(
     name="get_resource_usage",
-    description="Get the resource usage of the running process",
+    description="Use this to get the CPU and Memory usage of the program",
     properties={}, required=[]
 )
