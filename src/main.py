@@ -139,6 +139,12 @@ async def main():
         enable_metrics=VERBOSE,
         enable_usage_metrics=VERBOSE,
     ), observers=[MetricsLogger()], idle_timeout_secs=60*60)
+
+    @task.event_handler("on_idle_timeout")
+    async def on_idle_handler(task):
+        print("WARNING: Pipeline finishing due to idle timeout.")
+        logging.warning("Pipeline finishing due to idle timeout.")
+
     runner = PipelineRunner()
 
     print("Voice Assistant Running... Say 'Jarvis' to interact.")
