@@ -1,6 +1,7 @@
 from pipecat.adapters.schemas.function_schema import FunctionSchema
 from pipecat.services.llm_service import FunctionCallParams
-import asyncio, logging
+from config import get_config
+import asyncio, logging, os
 
 async def run_command(cmd_list, cwd=None):
     cmd_string = " ".join(cmd_list)
@@ -21,8 +22,8 @@ async def execute_agent_git_modification(params: FunctionCallParams):
     logging.info(f"Starting agent git modification. Branch: {branch_name}, Prompt: {prompt}, Repo: {repo_name}")
     await params.result_callback({"status": "processing", "message": f"Starting work on branch {branch_name} in {repo_name}..."})
 
-    # repo_path = f"./../{repo_name}"
-    repo_path = "C:\\Users\\aidan\\OneDrive\\Documents\\gravity-simulation"
+    config = get_config()
+    repo_path = os.path.join(config.GIT_BASE_PATH, repo_name)
 
     try:
         logging.info(f"Creating branch {branch_name}...")

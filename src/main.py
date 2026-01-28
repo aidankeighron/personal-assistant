@@ -22,6 +22,7 @@ from tts import LocalPiperTTSService
 from loguru import logger
 from functions import functions, basic, sandbox, files, git_ops
 from observer import MetricsLogger, setup_logging
+from config import get_config
 import logging
 
 logger.remove()
@@ -33,6 +34,8 @@ HARDCODED_INPUT_TEXT = "Jarvis What is the current weather, use the search_inter
 MODEL_NAME = "qwen3:4b-instruct-2507-q4_K_M"
 
 async def main():
+    config = get_config()
+
     # SST
     vad = SileroVADAnalyzer(params=VADParams(
         start_secs=0.1,
@@ -49,7 +52,7 @@ async def main():
             audio_out_index=7,
             allow_interruptions=False,
     ))
-    stt = WhisperSTTService(model=Model.SMALL, device="cuda", compute_type="float16")
+    stt = WhisperSTTService(model=Model.SMALL, device=config.WHISPER_DEVICE, compute_type=config.WHISPER_COMPUTE_TYPE)
 
     # LLM
     llm = OLLamaLLMService(model=MODEL_NAME, base_url="http://localhost:11434/v1")
