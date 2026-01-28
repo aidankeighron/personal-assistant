@@ -7,7 +7,8 @@
     "declarativeNetRequest",
     "declarativeNetRequestFeedback",
     "storage",
-    "alarms"
+    "alarms",
+    "notifications"
   ],
   "host_permissions": [
     "<all_urls>"
