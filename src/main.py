@@ -66,7 +66,8 @@ async def main():
     llm.register_function("read_file", files.execute_read_file, cancel_on_interruption=True)
     llm.register_function("write_file", files.execute_write_file, cancel_on_interruption=True)
     llm.register_function("append_to_memory", files.execute_append_to_memory, cancel_on_interruption=True)
-    llm.register_function("agent_git_modification", git_ops.execute_agent_git_modification, cancel_on_interruption=True)
+    llm.register_function("list_files", files.execute_list_files, cancel_on_interruption=True)
+    # llm.register_function("agent_git_modification", git_ops.execute_agent_git_modification, cancel_on_interruption=True)
 
     # Context
     tools = ToolsSchema(standard_tools=[
@@ -79,7 +80,8 @@ async def main():
         files.read_file,
         files.write_file,
         files.append_to_memory,
-        git_ops.agent_git_modification
+        files.list_files,
+        # git_ops.agent_git_modification
     ])
     system_prompt = open("./tools/system.txt").read()
     # function_prompt = open("./tools/functions.txt").read()

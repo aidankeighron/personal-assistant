@@ -47,3 +47,8 @@ append_to_memory
 Use this to append a new line to your long-term memory file.
 Use this for remembering facts about the user, preferences, or important project details.
 Arguments: content (str)
+
+list_files
+
+Use this to see all available files in the data directory.
+No arguments required.

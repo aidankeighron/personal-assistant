@@ -14,6 +14,29 @@ def _is_safe_path(path: str, base_dir: str) -> bool:
     """Ensures the path is within the base_dir."""
     return os.path.abspath(path).startswith(os.path.abspath(base_dir))
 
+def _list_files_sync() -> str:
+    try:
+        files = [f for f in os.listdir(DATA_DIR) if os.path.isfile(os.path.join(DATA_DIR, f))]
+        if not files:
+            return "No files found in data directory."
+        return "Available files:\n" + "\n".join(files)
+    except Exception as e:
+        return f"Error listing files: {str(e)}"
+
+async def execute_list_files(params: FunctionCallParams):
+    """Lists all files in the data directory."""
+    logging.info("List files request")
+    content = await asyncio.to_thread(_list_files_sync)
+    logging.info(f"List files result: {content}")
+    await params.result_callback(content)
+
+list_files = FunctionSchema(
+    name="list_files",
+    description="List all available files in the data directory. Use this to see what files you can read.",
+    properties={},
+    required=[]
+)
+
 async def execute_read_file(params: FunctionCallParams):
     """Reads content from a file in the data directory."""
     filename = params.arguments.get("filename")
@@ -35,7 +58,8 @@ def _read_file_sync(filename: str) -> str:
         with open(filepath, 'r', encoding='utf-8') as f:
             return f.read()
     except FileNotFoundError:
-        return f"Error: File '{filename}' not found."
+        available_files = _list_files_sync()
+        return f"Error: File '{filename}' not found. {available_files}"
     except Exception as e:
         return f"Error reading file: {str(e)}"
 
