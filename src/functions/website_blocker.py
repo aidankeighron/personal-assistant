@@ -13,8 +13,8 @@ from plyer import notification
 active_blocks: Dict[int, Dict] = {}
 block_counter = 0
 
-# Command file location
-COMMAND_FILE_PATH = r"C:\Users\aidan\OneDrive\Documents\personal-assistant\.extension-data\block-commands.json"
+# Command file location - use current user's directory
+COMMAND_FILE_PATH = r"C:\Users\Billy1301\Documents\Programming\Programs\personal-assistant"
 
 def _normalize_domain(url_or_domain: str) -> str:
     """Extract clean domain from URL or domain string."""
