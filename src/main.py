@@ -146,6 +146,7 @@ async def main():
 
     try:
         await runner.run(task)
+        logging.info("Pipeline runner finished normally.")
     except KeyboardInterrupt:
         await task.cancel()
     except Exception as e:
