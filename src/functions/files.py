@@ -19,7 +19,7 @@ def _list_files_sync() -> str:
         files = [f for f in os.listdir(DATA_DIR) if os.path.isfile(os.path.join(DATA_DIR, f))]
         if not files:
             return "No files found in data directory."
-        return "Available files:\n" + "\n".join(files)
+        return "[SYSTEM FETCHED DATA: FILE LIST]\n" + "Available files:\n" + "\n".join(files) + "\n[END DATA]"
     except Exception as e:
         return f"Error listing files: {str(e)}"
 
@@ -56,7 +56,8 @@ def _read_file_sync(filename: str) -> str:
         
     try:
         with open(filepath, 'r', encoding='utf-8') as f:
-            return f.read()
+            content = f.read()
+            return f"[SYSTEM FETCHED DATA: FILE CONTENT ({filename})]\n\n{content}\n\n[END DATA]"
     except FileNotFoundError:
         available_files = _list_files_sync()
         return f"Error: File '{filename}' not found. {available_files}"
