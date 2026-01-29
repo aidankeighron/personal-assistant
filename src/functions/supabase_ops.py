@@ -107,8 +107,8 @@ async def execute_get_website_usage(params: FunctionCallParams):
         today = datetime.date.today()
         start_date = today - datetime.timedelta(days=days)
         
-        # Filter: timespent > 10 minutes (600 seconds)
-        MIN_DURATION_SECONDS = 600
+        # Filter: timespent > 1 minute (60 seconds)
+        MIN_DURATION_SECONDS = 60
         
         response = supabase.table("website_usage") \
             .select("*") \
@@ -152,7 +152,7 @@ async def execute_get_website_usage(params: FunctionCallParams):
 
 get_website_usage_schema = FunctionSchema(
     name="get_website_usage",
-    description="Get website usage data for the past N days. Filters for usage > 10 minutes. Returns values in minutes. Tracks usage separately by device (e.g., desktop, mobile, unknown).",
+    description="Get website usage data for the past N days. Filters for usage > 1 minute. Returns values in minutes. Tracks usage separately by device (e.g., desktop, mobile, unknown).",
     properties={
         "days": {
             "type": "integer",
