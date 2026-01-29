@@ -81,3 +81,34 @@ class HardcodedInputInjector(FrameProcessor):
             await asyncio.sleep(1.0)
             logging.info(f"Injecting hardcoded input: {self._text}")
             await self.push_frame(TranscriptionFrame(text=self._text, user_id="user", timestamp=0), direction)
+
+class MessageInjector(FrameProcessor):
+    def __init__(self, context: LLMContext):
+        super().__init__()
+        self._context = context
+        self._queue = asyncio.Queue()
+
+    def schedule(self, text: str):
+        self._queue.put_nowait(text)
+
+    async def process_frame(self, frame: Frame, direction: FrameDirection):
+        await super().process_frame(frame, direction)
+        
+        # Check if we have any pending messages to inject
+        try:
+            while not self._queue.empty():
+                text = self._queue.get_nowait()
+                logging.info(f"Injecting scheduled message: {text}")
+                print(f"User (Scheduled): {text}")
+                
+                # Create a user message
+                user_message = {"role": "user", "content": text}
+                self._context.messages.append(user_message)
+                
+                # Push LLMContextFrame to trigger the LLM
+                await self.push_frame(LLMContextFrame(messages=self._context.messages), direction)
+        except Exception as e:
+            logging.error(f"Error injecting message: {e}")
+
+        # Pass the original frame through
+        await self.push_frame(frame, direction)

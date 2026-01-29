@@ -16,11 +16,11 @@ from pipecat.services.llm_service import LLMContext
 from pipecat.pipeline.runner import PipelineRunner
 from pipecat.pipeline.pipeline import Pipeline
 
-from processors import WakeWordGate, ConsoleLogger, HardcodedInputInjector
+from processors import WakeWordGate, ConsoleLogger, HardcodedInputInjector, MessageInjector
 from ollama import ensure_ollama_running, ensure_model_downloaded, unload_model
 from tts import LocalPiperTTSService
 from loguru import logger
-from functions import functions, basic, sandbox, files, google_ops, supabase_ops, alarm, website_blocker
+from functions import functions, basic, sandbox, files, google_ops, supabase_ops, alarm, website_blocker, scheduler
 from observer import MetricsLogger, setup_logging
 from config import get_config
 import logging
@@ -78,6 +78,7 @@ async def main():
     llm.register_function("get_website_usage", supabase_ops.execute_get_website_usage, cancel_on_interruption=True)
     llm.register_function("schedule_alarm", alarm.execute_schedule_alarm, cancel_on_interruption=False)
     llm.register_function("block_websites", website_blocker.execute_block_websites, cancel_on_interruption=False)
+    # llm.register_function("schedule_prompt", scheduler.execute_schedule_prompt, cancel_on_interruption=False)
 
     # Context
     tools = ToolsSchema(standard_tools=[
@@ -97,6 +98,7 @@ async def main():
         supabase_ops.get_website_usage_schema,
         alarm.schedule_alarm_schema,
         website_blocker.block_websites_schema,
+        # scheduler.schedule_prompt_schema,
     ])
     system_prompt = open("./tools/system.txt").read()
     # function_prompt = open("./tools/functions.txt").read()
@@ -132,6 +134,9 @@ async def main():
     
     # Custom Processors
     wake_word_gate = WakeWordGate(context=context)
+    message_injector = MessageInjector(context=context)
+    scheduler.set_injector(message_injector)
+    
     console_logger = ConsoleLogger()
 
     pipeline_steps = [transport.input()]
@@ -141,6 +146,7 @@ async def main():
         stt,
         user_aggregator,
         wake_word_gate,
+        # message_injector,
         llm,
         console_logger,
         tts, 
