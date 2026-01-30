@@ -6,12 +6,13 @@ from fuzzywuzzy import process, fuzz
 import logging
 
 class WakeWordGate(FrameProcessor):
-    def __init__(self, context: LLMContext, wake_word: str="jarvis", threshold: int=91, min_length: int=4):
+    def __init__(self, context: LLMContext, wake_word: str="jarvis", threshold: int=91, min_length: int=4, transcript_file: str=None):
         super().__init__()
         self._context = context
         self._wake_word = wake_word
         self._threshold = threshold
         self._min_length = min_length
+        self._transcript_file = transcript_file
 
     def _should_respond(self, text: str) -> bool:
         filtered_words = [w.lower() for w in text.split() if len(w) > self._min_length]
@@ -31,6 +32,12 @@ class WakeWordGate(FrameProcessor):
                 if self._should_respond(last_user_message):
                     print(f"User: {last_user_message}")
                     logging.info(f"User: {last_user_message}")
+                    if self._transcript_file:
+                        try:
+                            with open(self._transcript_file, "a", encoding="utf-8") as f:
+                                f.write(f"User: {last_user_message}\n")
+                        except Exception as e:
+                            logging.error(f"Failed to log to transcript: {e}")
                 else:
                     print(last_user_message)
                     logging.info(f"Audio: {last_user_message}")
@@ -39,11 +46,12 @@ class WakeWordGate(FrameProcessor):
         await self.push_frame(frame, direction)
 
 class ConsoleLogger(FrameProcessor):
-    def __init__(self):
+    def __init__(self, transcript_file: str=None):
         super().__init__()
         self._started = False
         self._current_response = ""
         self._label_printed = False
+        self._transcript_file = transcript_file
 
     async def process_frame(self, frame: Frame, direction: FrameDirection):
         await super().process_frame(frame, direction)
@@ -65,6 +73,12 @@ class ConsoleLogger(FrameProcessor):
             if self._current_response:
                 print()
                 logging.info(f"Jarvis: {self._current_response}")
+                if self._transcript_file:
+                    try:
+                        with open(self._transcript_file, "a", encoding="utf-8") as f:
+                            f.write(f"Jarvis: {self._current_response}\n")
+                    except Exception as e:
+                        logging.error(f"Failed to log to transcript: {e}")
                 self._current_response = ""
             self._started = False
             self._label_printed = False

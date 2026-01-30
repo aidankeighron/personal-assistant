@@ -24,6 +24,8 @@ from functions import functions, basic, sandbox, files, google_ops, supabase_ops
 from observer import MetricsLogger, setup_logging
 from config import get_config
 import logging
+import datetime
+import os
 
 logger.remove()
 setup_logging()
@@ -41,6 +43,16 @@ MODEL_NAME = "qwen3:4b-instruct-2507-q4_K_M"
 
 async def main():
     config = get_config()
+
+    # Create history directory if it doesn't exist
+    history_dir = ".history"
+    os.makedirs(history_dir, exist_ok=True)
+    
+    # Generate transcript filename based on current time
+    now = datetime.datetime.now()
+    transcript_filename = now.strftime("%Y-%m-%d_%H-%M-%S.txt")
+    transcript_file = os.path.join(history_dir, transcript_filename)
+    logging.info(f"Logging conversation to {transcript_file}")
 
     # SST
     vad = SileroVADAnalyzer(params=VADParams(
@@ -133,11 +145,11 @@ async def main():
         )
     
     # Custom Processors
-    wake_word_gate = WakeWordGate(context=context)
+    wake_word_gate = WakeWordGate(context=context, transcript_file=transcript_file)
     message_injector = MessageInjector(context=context)
     scheduler.set_injector(message_injector)
     
-    console_logger = ConsoleLogger()
+    console_logger = ConsoleLogger(transcript_file=transcript_file)
 
     pipeline_steps = [transport.input()]
     if HARDCODE_INPUT:
