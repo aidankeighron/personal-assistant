@@ -19,36 +19,23 @@ def _list_files_sync() -> str:
         files = [f for f in os.listdir(DATA_DIR) if os.path.isfile(os.path.join(DATA_DIR, f))]
         if not files:
             return "No files found in data directory."
-        return "[SYSTEM FETCHED DATA: FILE LIST]\n" + "Available files:\n" + "\n".join(files) + "\n[END DATA]"
+        
+        file_list_output = []
+        for filename in files:
+            filepath = os.path.join(DATA_DIR, filename)
+            description = "No description"
+            try:
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    first_line = f.readline().strip()
+                    if first_line:
+                        description = first_line
+            except Exception:
+                pass
+            file_list_output.append(f"- {filename}: {description}")
+
+        return "[SYSTEM FETCHED DATA: FILE LIST]\n" + "Available files:\n" + "\n".join(file_list_output) + "\n[END DATA]"
     except Exception as e:
         return f"Error listing files: {str(e)}"
-
-async def execute_list_files(params: FunctionCallParams):
-    """Lists all files in the data directory."""
-    logging.info("List files request")
-    content = await asyncio.to_thread(_list_files_sync)
-    logging.info(f"List files result: {content}")
-    await params.result_callback(content)
-
-list_files = FunctionSchema(
-    name="list_files",
-    description="Use this to see all available files in the data directory. No arguments required.",
-    properties={},
-    required=[]
-)
-
-async def execute_read_file(params: FunctionCallParams):
-    """Reads content from a file in the data directory."""
-    filename = params.arguments.get("filename")
-    logging.info(f"Read file request for: {filename}")
-    content = await asyncio.to_thread(_read_file_sync, filename)
-    if content.startswith("Error"):
-        logging.error(f"Read file error: {content}")
-    else:
-        # Log output with truncation to prevent bloat
-        log_output = content[:500] + "..." if len(content) > 500 else content
-        logging.info(f"Successfully read file {filename}, output: {log_output}")
-    await params.result_callback(content)
 
 def _read_file_sync(filename: str) -> str:
     filepath = os.path.join(DATA_DIR, filename)
@@ -66,57 +53,75 @@ def _read_file_sync(filename: str) -> str:
     except Exception as e:
         return f"Error reading file: {str(e)}"
 
-read_file = FunctionSchema(
-    name="read_file",
-    description="Use this to read the entire contents of a file in the data directory. Do not add the /data prefix that is automatically applied.",
-    properties={
-        "filename": {
-            "type": "string",
-            "description": "The name of the file to read",
-        }
-    },
-    required=["filename"]
-)
-
-async def execute_write_file(params: FunctionCallParams):
-    """Writes content to a file in the data directory."""
-    filename = params.arguments.get("filename")
-    content = params.arguments.get("content")
-    logging.info(f"Write file request for: {filename}")
-    result = await asyncio.to_thread(_write_file_sync, filename, content)
-    if result.startswith("Error"):
-        logging.error(f"Write file error: {result}")
-    else:
-        logging.info(f"Successfully wrote to {filename}")
-    await params.result_callback(result)
-
-def _write_file_sync(filename: str, content: str) -> str:
+def _write_file_sync(filename: str, content: str, description: str) -> str:
     filepath = os.path.join(DATA_DIR, filename)
     
     if not _is_safe_path(filepath, DATA_DIR):
         return "Error: Access denied. Can only write files to the data directory."
         
     try:
+        final_content = f"{description}\n{content}"
         with open(filepath, 'w', encoding='utf-8') as f:
-            f.write(content)
+            f.write(final_content)
         return f"Successfully wrote to '{filename}'."
     except Exception as e:
         return f"Error writing file: {str(e)}"
 
-write_file = FunctionSchema(
-    name="write_file",
-    description="Use this to write content to a file in the data directory. Do not add the /data prefix that is automatically applied.",
+async def execute_manage_file_system(params: FunctionCallParams):
+    """Manages file system operations (read, write, list)."""
+    action = params.arguments.get("action")
+    filename = params.arguments.get("filename")
+    content = params.arguments.get("content")
+    description = params.arguments.get("description")
+
+    logging.info(f"manage_file_system request: action={action}, filename={filename}")
+
+    if action == "list":
+        result = await asyncio.to_thread(_list_files_sync)
+    elif action == "read":
+        if not filename:
+            result = "Error: filename is required for read action."
+        else:
+            result = await asyncio.to_thread(_read_file_sync, filename)
+    elif action == "write":
+        if not filename or not content or not description:
+            result = "Error: filename, content, and description are required for write action."
+        else:
+            result = await asyncio.to_thread(_write_file_sync, filename, content, description)
+    else:
+        result = f"Error: Unknown action '{action}'"
+    
+    if result.startswith("Error"):
+        logging.error(f"manage_file_system error: {result}")
+    else:
+        log_output = result[:500] + "..." if len(result) > 500 else result
+        logging.info(f"manage_file_system success: {log_output}")
+    
+    await params.result_callback(result)
+
+manage_file_system = FunctionSchema(
+    name="manage_file_system",
+    description="Use this tool to manage files in the long term memory. You can list, read, or write files.",
     properties={
+        "action": {
+            "type": "string",
+            "enum": ["list", "read", "write"],
+            "description": "The action to perform. List will list all available files and their descriptions, and read and write will let you read and write to the files"
+        },
         "filename": {
             "type": "string",
-            "description": "The name of the file to write to",
+            "description": "The name of the file (required for read/write)."
         },
         "content": {
             "type": "string",
-            "description": "The content to write to the file",
+            "description": "The content to write (required for write)."
+        },
+        "description": {
+            "type": "string",
+            "description": "A description of the file (required for write)."
         }
     },
-    required=["filename", "content"]
+    required=["action"]
 )
 
 async def execute_append_to_memory(params: FunctionCallParams):

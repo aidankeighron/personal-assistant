@@ -6,58 +6,39 @@ import logging
 from pipecat.services.llm_service import FunctionCallParams
 from pipecat.adapters.schemas.function_schema import FunctionSchema
 
-async def execute_get_current_time(params: FunctionCallParams):
-    """Returns the current local time."""
-    logging.info("Calling get_current_time")
-    time_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    logging.info(f"get_current_time result: {time_str}")
-    await params.result_callback(time_str)
-
-get_current_time = FunctionSchema(
-    name="get_current_time",
-    description="Use this to get the current local time in 'YYYY-MM-DD HH:MM:SS' format.",
-    properties={},
-    required=[]
-)
-
-async def execute_get_current_date(params: FunctionCallParams):
-    """Returns the current date."""
-    logging.info("Calling get_current_date")
-    date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-    logging.info(f"get_current_date result: {date_str}")
-    await params.result_callback(date_str)
-
-get_current_date = FunctionSchema(
-    name="get_current_date",
-    description="Use this to get the current date in 'YYYY-MM-DD' format.",
-    properties={},
-    required=[]
-)
-
-async def execute_get_current_location(params: FunctionCallParams):
-    """Returns the current location based on IP address."""
-    logging.info("Calling get_current_location")
+async def execute_get_date_time_location(params: FunctionCallParams):
+    """Returns the current date, time, and location."""
+    logging.info("Calling get_date_time_location")
+    
+    # Get time and date
+    now = datetime.datetime.now()
+    date_str = now.strftime("%Y-%m-%d")
+    time_str = now.strftime("%H:%M:%S")
+    
+    # Get location (in a separate thread as it involves I/O)
     try:
-        # Run blocking I/O in a separate thread
         location = await asyncio.to_thread(_get_location_sync)
-        logging.info(f"get_current_location result: {location}")
-        await params.result_callback(location)
     except Exception as e:
-        error_msg = f"Location unavailable: {str(e)}"
-        logging.error(error_msg)
-        await params.result_callback(error_msg)
+        location = f"Unavailable ({str(e)})"
+        
+    result_str = f"Date: {date_str}\nTime: {time_str}\nLocation: {location}"
+    logging.info(f"get_date_time_location result: {result_str}")
+    await params.result_callback(result_str)
 
 def _get_location_sync() -> str:
-    with urllib.request.urlopen("http://ip-api.com/json") as url:
-        data = json.loads(url.read().decode())
-        if data['status'] == 'success':
-            return f"{data['city']}, {data['regionName']}, {data['country']}"
-        else:
-            return "Location unavailble"
+    try:
+        with urllib.request.urlopen("http://ip-api.com/json", timeout=5) as url:
+            data = json.loads(url.read().decode())
+            if data['status'] == 'success':
+                return f"{data['city']}, {data['regionName']}, {data['country']}"
+            else:
+                return "Location unavailable"
+    except Exception as e:
+        return f"Location unavailable ({str(e)})"
 
-get_current_location = FunctionSchema(
-    name="get_current_location",
-    description="Use this to get the approximate location (city, region, country) of the user based on their IP address.",
+get_date_time_location = FunctionSchema(
+    name="get_date_time_location",
+    description="Use this to get the current date, time, and approximate location of the user.",
     properties={},
     required=[]
 )

@@ -39,6 +39,9 @@ setup_logging()
 VERBOSE = True
 HARDCODE_INPUT = False
 HARDCODED_INPUT_TEXT = "Jarvis What is the current weather, use the search_internet function"
+# MODEL_NAME = "qwen2.5:32b"
+# MODEL_NAME = "mistral-nemo"
+# MODEL_NAME = "qwen2.5:14b"
 MODEL_NAME = "qwen3:4b-instruct-2507-q4_K_M"
 
 async def main():
@@ -75,15 +78,11 @@ async def main():
     # LLM
     llm = OLLamaLLMService(model=MODEL_NAME, base_url="http://localhost:11434/v1")
     llm.register_function("search_internet", functions.execute_web_search, cancel_on_interruption=True)
-    llm.register_function("get_resource_usage", functions.monitor_resources, cancel_on_interruption=True)
-    llm.register_function("get_current_time", basic.execute_get_current_time, cancel_on_interruption=True)
-    # llm.register_function("get_current_location", basic.execute_get_current_location, cancel_on_interruption=True)
-    llm.register_function("get_current_date", basic.execute_get_current_date, cancel_on_interruption=True)
+    # llm.register_function("get_resource_usage", functions.monitor_resources, cancel_on_interruption=True)
+    llm.register_function("get_date_time_location", basic.execute_get_date_time_location, cancel_on_interruption=True)
     # llm.register_function("run_python_code", sandbox.execute_run_python_code, cancel_on_interruption=True)
-    # llm.register_function("read_file", files.execute_read_file, cancel_on_interruption=True)
-    # llm.register_function("write_file", files.execute_write_file, cancel_on_interruption=True)
     llm.register_function("append_to_memory", files.execute_append_to_memory, cancel_on_interruption=True)
-    # llm.register_function("list_files", files.execute_list_files, cancel_on_interruption=True)
+    llm.register_function("manage_file_system", files.execute_manage_file_system, cancel_on_interruption=True)
     llm.register_function("get_recent_emails", google_ops.execute_get_recent_emails, cancel_on_interruption=True)
     llm.register_function("get_calendar_events", google_ops.execute_get_calendar_events, cancel_on_interruption=True)
     # llm.register_function("get_habits", supabase_ops.execute_get_habits, cancel_on_interruption=True)
@@ -95,22 +94,18 @@ async def main():
     # Context
     tools = ToolsSchema(standard_tools=[
         functions.search_internet, 
-        functions.get_resource_usage,
-        basic.get_current_time,
-        # basic.get_current_location,
-        basic.get_current_date,
+        # functions.get_resource_usage,
+        basic.get_date_time_location,
         # sandbox.run_python_code,
-        # files.read_file,
-        # files.write_file,
         files.append_to_memory,
-        # files.list_files,
+        files.manage_file_system,
         google_ops.get_recent_emails,
         google_ops.get_calendar_events,
-        # supabase_ops.get_habits_schema,
-        # supabase_ops.get_website_usage_schema,
-        alarm.schedule_alarm_schema,
-        # website_blocker.block_websites_schema,
-        # scheduler.schedule_prompt_schema,
+        # supabase_ops.get_habits,
+        # supabase_ops.get_website_usage,
+        alarm.schedule_alarm,
+        # website_blocker.block_websites,
+        # scheduler.schedule_prompt,
     ])
     system_prompt = open("./tools/system.txt").read()
     # function_prompt = open("./tools/functions.txt").read()
