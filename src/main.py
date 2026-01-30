@@ -65,19 +65,19 @@ async def main():
     llm.register_function("search_internet", functions.execute_web_search, cancel_on_interruption=True)
     llm.register_function("get_resource_usage", functions.monitor_resources, cancel_on_interruption=True)
     llm.register_function("get_current_time", basic.execute_get_current_time, cancel_on_interruption=True)
-    llm.register_function("get_current_location", basic.execute_get_current_location, cancel_on_interruption=True)
+    # llm.register_function("get_current_location", basic.execute_get_current_location, cancel_on_interruption=True)
     llm.register_function("get_current_date", basic.execute_get_current_date, cancel_on_interruption=True)
-    llm.register_function("run_python_code", sandbox.execute_run_python_code, cancel_on_interruption=True)
-    llm.register_function("read_file", files.execute_read_file, cancel_on_interruption=True)
-    llm.register_function("write_file", files.execute_write_file, cancel_on_interruption=True)
+    # llm.register_function("run_python_code", sandbox.execute_run_python_code, cancel_on_interruption=True)
+    # llm.register_function("read_file", files.execute_read_file, cancel_on_interruption=True)
+    # llm.register_function("write_file", files.execute_write_file, cancel_on_interruption=True)
     llm.register_function("append_to_memory", files.execute_append_to_memory, cancel_on_interruption=True)
-    llm.register_function("list_files", files.execute_list_files, cancel_on_interruption=True)
+    # llm.register_function("list_files", files.execute_list_files, cancel_on_interruption=True)
     llm.register_function("get_recent_emails", google_ops.execute_get_recent_emails, cancel_on_interruption=True)
     llm.register_function("get_calendar_events", google_ops.execute_get_calendar_events, cancel_on_interruption=True)
-    llm.register_function("get_habits", supabase_ops.execute_get_habits, cancel_on_interruption=True)
-    llm.register_function("get_website_usage", supabase_ops.execute_get_website_usage, cancel_on_interruption=True)
+    # llm.register_function("get_habits", supabase_ops.execute_get_habits, cancel_on_interruption=True)
+    # llm.register_function("get_website_usage", supabase_ops.execute_get_website_usage, cancel_on_interruption=True)
     llm.register_function("schedule_alarm", alarm.execute_schedule_alarm, cancel_on_interruption=False)
-    llm.register_function("block_websites", website_blocker.execute_block_websites, cancel_on_interruption=False)
+    # llm.register_function("block_websites", website_blocker.execute_block_websites, cancel_on_interruption=False)
     # llm.register_function("schedule_prompt", scheduler.execute_schedule_prompt, cancel_on_interruption=False)
 
     # Context
@@ -85,19 +85,19 @@ async def main():
         functions.search_internet, 
         functions.get_resource_usage,
         basic.get_current_time,
-        basic.get_current_location,
+        # basic.get_current_location,
         basic.get_current_date,
-        sandbox.run_python_code,
-        files.read_file,
-        files.write_file,
+        # sandbox.run_python_code,
+        # files.read_file,
+        # files.write_file,
         files.append_to_memory,
-        files.list_files,
+        # files.list_files,
         google_ops.get_recent_emails,
         google_ops.get_calendar_events,
-        supabase_ops.get_habits_schema,
-        supabase_ops.get_website_usage_schema,
+        # supabase_ops.get_habits_schema,
+        # supabase_ops.get_website_usage_schema,
         alarm.schedule_alarm_schema,
-        website_blocker.block_websites_schema,
+        # website_blocker.block_websites_schema,
         # scheduler.schedule_prompt_schema,
     ])
     system_prompt = open("./tools/system.txt").read()
