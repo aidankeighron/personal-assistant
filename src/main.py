@@ -16,7 +16,7 @@ from pipecat.services.llm_service import LLMContext
 from pipecat.pipeline.runner import PipelineRunner
 from pipecat.pipeline.pipeline import Pipeline
 
-from processors import WakeWordGate, ConsoleLogger, HardcodedInputInjector, MessageInjector
+from processors import WakeWordGate, ConsoleLogger, HardcodedInputInjector, MessageInjector, SystemInstructionRefresher
 from ollama import ensure_ollama_running, ensure_model_downloaded, unload_model
 from tts import LocalPiperTTSService
 from loguru import logger
@@ -76,7 +76,7 @@ async def main():
     stt = WhisperSTTService(model=Model.SMALL, device=config.WHISPER_DEVICE, compute_type=config.WHISPER_COMPUTE_TYPE)
 
     # LLM
-    llm = OLLamaLLMService(model=MODEL_NAME, base_url="http://localhost:11434/v1")
+    llm = OLLamaLLMService(model=MODEL_NAME, base_url="http://localhost:11434/v1", options={"num_ctx": 16384})
     llm.register_function("search_internet", functions.execute_web_search, cancel_on_interruption=True)
     # llm.register_function("get_resource_usage", functions.monitor_resources, cancel_on_interruption=True)
     llm.register_function("get_date_time_location", basic.execute_get_date_time_location, cancel_on_interruption=True)
@@ -141,6 +141,8 @@ async def main():
     
     # Custom Processors
     wake_word_gate = WakeWordGate(context=context, transcript_file=transcript_file)
+    refresher_prompt = open("./tools/refresher.txt").read()
+    system_refresher = SystemInstructionRefresher(instructional_anchor=refresher_prompt)
     message_injector = MessageInjector(context=context)
     scheduler.set_injector(message_injector)
     
@@ -151,6 +153,7 @@ async def main():
         pipeline_steps.append(HardcodedInputInjector(HARDCODED_INPUT_TEXT))
     pipeline_steps.extend([
         stt,
+        # system_refresher,
         user_aggregator,
         wake_word_gate,
         # message_injector,

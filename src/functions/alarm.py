@@ -126,7 +126,7 @@ async def execute_schedule_alarm(params: FunctionCallParams):
     logging.info(f"schedule_alarm output: {result_msg}")
     await params.result_callback({"result": result_msg, "alarm_id": alarm_id})
 
-schedule_alarm_schema = FunctionSchema(
+schedule_alarm = FunctionSchema(
     name="schedule_alarm",
     description="Schedule an alarm to go off at a specific time or after a delay. The alarm will play a sound and show a notification. You can specify either a specific time (e.g., '14:30' or '2:30 PM') OR a delay in minutes/hours.",
     properties={

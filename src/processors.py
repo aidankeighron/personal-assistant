@@ -1,9 +1,25 @@
 import asyncio
-from pipecat.frames.frames import Frame, LLMContextFrame, TextFrame, TranscriptionFrame, LLMFullResponseStartFrame, LLMFullResponseEndFrame, StartFrame, FunctionCallInProgressFrame
+from pipecat.frames.frames import Frame, LLMContextFrame, TextFrame, TranscriptionFrame, LLMFullResponseStartFrame, LLMFullResponseEndFrame, StartFrame, FunctionCallInProgressFrame, LLMMessagesAppendFrame
 from pipecat.processors.frame_processor import FrameProcessor, FrameDirection
 from pipecat.services.llm_service import LLMContext
 from fuzzywuzzy import process, fuzz
 import logging
+
+
+class SystemInstructionRefresher(FrameProcessor):
+    def __init__(self, instructional_anchor: str):
+        super().__init__()
+        self.anchor = instructional_anchor
+
+    async def process_frame(self, frame: Frame, direction: FrameDirection):
+        await super().process_frame(frame, direction)
+
+        if isinstance(frame, TranscriptionFrame):
+            refresher_message = {
+                "role": "system",
+                "content": f"SYSTEM REMINDER: {self.anchor}"
+            }
+            await self.push_frame(LLMMessagesAppendFrame(messages=[refresher_message], run_llm=False), direction)
 
 class WakeWordGate(FrameProcessor):
     def __init__(self, context: LLMContext, wake_word: str="jarvis", threshold: int=91, min_length: int=4, transcript_file: str=None):

@@ -207,7 +207,7 @@ async def execute_block_websites(params: FunctionCallParams) -> None:
         "unblock_time": unblock_time_str
     })
 
-block_websites_schema = FunctionSchema(
+block_websites = FunctionSchema(
     name="block_websites",
     description="Block access to specified websites for a given duration to help the user focus. Websites will be blocked via Chrome extension and automatically unblocked after the time expires. The user must have the Personal Assistant Website Blocker Chrome extension installed.",
     properties={

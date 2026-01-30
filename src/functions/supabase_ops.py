@@ -82,7 +82,7 @@ async def execute_get_habits(params: FunctionCallParams):
         logging.error(f"Error fetching habits: {e}")
         await params.result_callback({"error": str(e)})
 
-get_habits_schema = FunctionSchema(
+get_habits = FunctionSchema(
     name="get_habits",
     description="Get habit tracking data for the past N days. Includes current day. User is trying to dring 8 water a day, eat 3 food a day, and strect 2 a day.",
     properties={
@@ -150,7 +150,7 @@ async def execute_get_website_usage(params: FunctionCallParams):
         logging.error(f"Error fetching website usage: {e}")
         await params.result_callback({"error": str(e)})
 
-get_website_usage_schema = FunctionSchema(
+get_website_usage = FunctionSchema(
     name="get_website_usage",
     description="Get website usage data for the past N days. Filters for usage > 1 minute. Returns values in minutes. Tracks usage separately by device (e.g., desktop, mobile, unknown).",
     properties={
