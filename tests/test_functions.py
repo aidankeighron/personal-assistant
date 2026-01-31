@@ -32,7 +32,7 @@ async def test_execute_web_search(mock_tavily):
     # Check that results are joined
     params.result_callback.assert_called_once()
     result = params.result_callback.call_args[0][0]
-    assert result == {"result": "Result 1\nResult 2"}
+    assert result == {"result": "[CTX: WEB SEARCH]\nResult 1\nResult 2\n[END DATA]"}
 
 @pytest.mark.asyncio
 async def test_monitor_resources():

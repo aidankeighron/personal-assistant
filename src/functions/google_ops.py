@@ -80,8 +80,8 @@ def _get_recent_emails_sync(limit=50):
             email_info = f"From: {sender} | Date: {date} | Status: {status} | Subject: {subject} | Snippet: {snippet}"
             email_data.append(email_info)
 
-        formatted_emails = "\n\n".join(email_data)
-        return f"[INSTRUCTION: Present this as natural spoken English. Single paragraph. No lists. Read dates naturally.]\n\n[SYSTEM FETCHED DATA: EMAILS]:\n\n{formatted_emails}\n\n[END DATA]"
+        formatted_emails = "\n".join(email_data)
+        return f"[CTX: EMAILS - Natural Speech/No Lists]\n{formatted_emails}\n[END DATA]"
 
     except Exception as e:
         return f"Error fetching emails: {str(e)}"
@@ -151,8 +151,8 @@ def _get_calendar_events_sync(days=7):
             event_info = f"Event: {summary}\nStart: {start}\nEnd: {end}\nLocation: {location}\nDescription: {description}"
             event_list.append(event_info)
 
-        formatted_events = "\n\n".join(event_list)
-        return f"[INSTRUCTION: Present this as natural spoken English. Single paragraph. No lists. Read dates naturally.]\n\n[SYSTEM FETCHED DATA: CALENDAR]:\n\n{formatted_events}\n\n[END DATA]"
+        formatted_events = "\n".join(event_list)
+        return f"[CTX: CALENDAR - Natural Speech/No Lists]\n{formatted_events}\n[END DATA]"
 
     except Exception as e:
         return f"Error fetching calendar events: {str(e)}"

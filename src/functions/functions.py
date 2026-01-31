@@ -13,7 +13,7 @@ async def execute_web_search(params: FunctionCallParams):
     context = "\n".join([r["content"] for r in response["results"]])
     logging.info(f"Got results: {context}")
     
-    formatted_result = f"[SYSTEM FETCHED DATA: WEB SEARCH]:\n\n{context}\n\n[END DATA]"
+    formatted_result = f"[CTX: WEB SEARCH]\n{context}\n[END DATA]"
     await params.result_callback({"result": formatted_result})
 
 search_internet = FunctionSchema(
