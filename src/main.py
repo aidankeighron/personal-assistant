@@ -40,19 +40,26 @@ VERBOSE = True
 HARDCODE_INPUT = False
 HARDCODED_INPUT_TEXT = "Jarvis What is the current weather, use the search_internet function"
 # MODEL_NAME = "qwen2.5:32b"
-# MODEL_NAME = "mistral-nemo"
+MODEL_NAME = "mistral-nemo"
 # MODEL_NAME = "qwen2.5:14b"
-MODEL_NAME = "qwen3:4b-instruct-2507-q4_K_M"
+# MODEL_NAME = "qwen3:4b-instruct-2507-q4_K_M"
 
 async def main():
     config = get_config()
 
     # Create history directory if it doesn't exist
-    history_dir = ".history"
+    base_history_dir = ".history"
+    
+    # Generate timestamp and derived folder names
+    now = datetime.datetime.now()
+    week_num = now.isocalendar()[1]
+    day_name = now.strftime("%A")
+    
+    # Create directory structure: .history/Week_X/DayName
+    history_dir = os.path.join(base_history_dir, f"Week_{week_num}", day_name)
     os.makedirs(history_dir, exist_ok=True)
     
     # Generate transcript filename based on current time
-    now = datetime.datetime.now()
     transcript_filename = now.strftime("%Y-%m-%d_%H-%M-%S.txt")
     transcript_file = os.path.join(history_dir, transcript_filename)
     logging.info(f"Logging conversation to {transcript_file}")
@@ -153,7 +160,7 @@ async def main():
         pipeline_steps.append(HardcodedInputInjector(HARDCODED_INPUT_TEXT))
     pipeline_steps.extend([
         stt,
-        # system_refresher,
+        system_refresher,
         user_aggregator,
         wake_word_gate,
         # message_injector,

@@ -1,0 +1,29 @@
+User: Hello Jarvis.
+Jarvis: Identifying you now, Sir. How can I assist today?
+User: Jarvis, can you summarize the last email I got sent?
+Jarvis: Your most recent email was from xkcd comics with the subject "xkcd #3201: Proof Without Content." The snippet mentions a proof without content of a conjecture without content as an exercise for the reader. Would you like to review anything else, Sir?
+User: Yes, Jarvis, what do I have to do today?
+Jarvis: คณะกรรมการ, ฉันจะดูปฏิทินของคุณตอนนี้.
+
+Jarvis: Here's a summary of your upcoming events for the next month:
+
+**January 24th**
+- **MD Terrapins vs. Michigan State Spartans Mens Basketball**: 12pm - 1pm at Jack Breslin Student Events Center
+
+**January 25th to January 27th:**
+- Various classes such as CSE 482, PHL 130, and CSE 431 spread throughout these days. 
+
+**January 29th**
+- **Burgess Bash**: 11:30am - 1:30pm at MSU Union, which was previously postponed due to bad weather.
+- **Project Launch** in the evening from 6pm to 8:30pm
+- **Imagine Board Meeting**: 7pm - 8pm
+
+**January 30th and 31st**
+- Several meetings with Benas (29th, 30th), Vadim (30th afternoon coffee), and play points sessions on both afternoons.
+- Annika Cat Cafe visit on the morning of January 31st.
+
+Please check your specific times and locations for each event since some might require you to get additional information.
+
+Do you need more details on any particular day or event?
+User: Jarvis.
+Jarvis: Today is January 24th, Sir.
