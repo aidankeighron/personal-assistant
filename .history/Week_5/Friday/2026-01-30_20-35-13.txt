@@ -1,0 +1,12 @@
+User: Hello Jarvis.
+Jarvis: Good morning, Sir! How can I assist you today?
+User: Jarvis.
+Jarvis: The coffee event with Vadim is today at 8:35 PM in East Lansing, Michigan.
+User: Jarvis, can you look at my calendar to find out what time the coffee with Vadim  event is today?
+Jarvis:  I see that you have a busy day today. Your coffee event with Vadim is scheduled at 3 pm today, no location specified.
+User: Jarvis, can you summarize what events I have today?
+Jarvis: Here are your events for today:
+
+* Annika Lunch from 11:30 AM to 12:30 PM (No Location)
+* CSE 482 from 3:00 PM to 4:20 PM at Olds Hall, East Lansing, MI
+* Coffee with Vadim from 3:00 PM to 4:00 PM (No Location)

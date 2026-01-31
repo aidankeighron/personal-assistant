@@ -14,12 +14,13 @@ class SystemInstructionRefresher(FrameProcessor):
     async def process_frame(self, frame: Frame, direction: FrameDirection):
         await super().process_frame(frame, direction)
 
-        if isinstance(frame, TranscriptionFrame):
             refresher_message = {
                 "role": "system",
                 "content": f"SYSTEM REMINDER: {self.anchor}"
             }
             await self.push_frame(LLMMessagesAppendFrame(messages=[refresher_message], run_llm=False), direction)
+        
+        await self.push_frame(frame, direction)
 
 class WakeWordGate(FrameProcessor):
     def __init__(self, context: LLMContext, wake_word: str="jarvis", threshold: int=91, min_length: int=4, transcript_file: str=None):
