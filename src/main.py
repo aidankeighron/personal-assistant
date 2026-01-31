@@ -83,7 +83,7 @@ async def main():
     stt = WhisperSTTService(model=Model.SMALL, device=config.WHISPER_DEVICE, compute_type=config.WHISPER_COMPUTE_TYPE)
 
     # LLM
-    llm = OLLamaLLMService(model=MODEL_NAME, base_url="http://localhost:11434/v1", options={"num_ctx": 16384})
+    llm = OLLamaLLMService(model=MODEL_NAME, base_url="http://localhost:11434/v1", options={"num_ctx": config.OLLAMA_NUM_CTX})
     llm.register_function("search_internet", functions.execute_web_search, cancel_on_interruption=True)
     # llm.register_function("get_resource_usage", functions.monitor_resources, cancel_on_interruption=True)
     llm.register_function("get_date_time_location", basic.execute_get_date_time_location, cancel_on_interruption=True)
@@ -198,8 +198,9 @@ async def main():
         await task.cancel()
 
 if __name__ == "__main__":
+    config = get_config()
     ensure_ollama_running()
-    ensure_model_downloaded(MODEL_NAME)
+    ensure_model_downloaded(MODEL_NAME, options={"num_ctx": config.OLLAMA_NUM_CTX})
     try:
         asyncio.run(main())
     finally:

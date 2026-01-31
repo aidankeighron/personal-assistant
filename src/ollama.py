@@ -26,7 +26,7 @@ def ensure_ollama_running():
                 print(".", end="", flush=True)
                 retries -= 1
 
-def ensure_model_downloaded(model_name: str):
+def ensure_model_downloaded(model_name: str, options: dict = None):
     print(f"Checking if model '{model_name}' is available...")
     logging.info(f"Checking if model '{model_name}' is available...")
     try:
@@ -43,12 +43,17 @@ def ensure_model_downloaded(model_name: str):
         print(f"Error checking/downloading model: {e}")
         logging.error(f"Error checking/downloading model: {e}")
 
-    # We send an empty generation request with keep_alive: -1 to load it into RAM indefinitely.
+    # We send an empty generation request with keep_alive: 60m to load it into RAM.
     print(f"Setting model '{model_name}' to keep_alive=60m...")
     logging.info(f"Setting model '{model_name}' to keep_alive=60m")
     
     url = "http://localhost:11434/api/generate"
-    data = json.dumps({"model": model_name, "keep_alive": "60m"}).encode("utf-8")
+    payload = {"model": model_name, "keep_alive": "60m"}
+    if options:
+        payload["options"] = options
+        logging.info(f"Passing options to Ollama: {options}")
+
+    data = json.dumps(payload).encode("utf-8")
     
     try:
         req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
