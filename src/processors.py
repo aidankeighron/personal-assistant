@@ -13,7 +13,8 @@ class SystemInstructionRefresher(FrameProcessor):
 
     async def process_frame(self, frame: Frame, direction: FrameDirection):
         await super().process_frame(frame, direction)
-
+        
+        if isinstance(frame, TranscriptionFrame):
             refresher_message = {
                 "role": "system",
                 "content": f"SYSTEM REMINDER: {self.anchor}"
@@ -136,8 +137,8 @@ class MessageInjector(FrameProcessor):
                 user_message = {"role": "user", "content": text}
                 self._context.messages.append(user_message)
                 
-                # Push LLMContextFrame to trigger the LLM
-                await self.push_frame(LLMContextFrame(messages=self._context.messages), direction)
+                # Push LLMMessagesAppendFrame to trigger the LLM
+                await self.push_frame(LLMMessagesAppendFrame(messages=[user_message]), direction)
         except Exception as e:
             logging.error(f"Error injecting message: {e}")
 
