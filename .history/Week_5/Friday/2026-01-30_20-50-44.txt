@@ -1,0 +1,10 @@
+User: Jarvis, what's the current date?
+Jarvis: The current date is January 30, 2026.
+User: Jarvis, what's the current weather?
+Jarvis: The current weather in East Lansing, Michigan is:
+
+**Condition:** Overcast
+**Temperature:** -13°C (9°F)
+**Wind:** 4.7 mph from the West-Northwest
+User: Jarvis, can you give me just a one sentence summary of my last email?
+Jarvis: You submitted "Too much of a good thing" for CSE 431 and CSE 830 on Gradescope at 1:18 AM Saturday, January 31st.
