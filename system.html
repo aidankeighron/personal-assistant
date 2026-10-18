@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M7 Sandbox & Multi-Agent System Architecture // system.html</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #09090b;
+            color: #f4f4f5;
+            background-image: 
+                radial-gradient(circle at 12% 10%, rgba(245, 158, 11, 0.06) 0%, transparent 35%),
+                radial-gradient(circle at 88% 45%, rgba(56, 189, 248, 0.05) 0%, transparent 35%),
+                radial-gradient(circle at 50% 90%, rgba(16, 185, 129, 0.05) 0%, transparent 40%);
+        }
+        .grid-bg {
+            background-size: 28px 28px;
+            background-image: 
+                linear-gradient(to right, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+        }
+        .hw-node-active {
+            border-color: #f59e0b !important;
+            box-shadow: 0 0 25px -5px rgba(245, 158, 11, 0.35);
+        }
+        .agent-active {
+            border-color: #38bdf8 !important;
+            box-shadow: 0 0 25px -5px rgba(56, 189, 248, 0.35);
+        }
+        @keyframes pulse-flow {
+            0%, 100% { opacity: 0.35; }
+            50% { opacity: 1; }
+        }
+        .flow-line {
+            animation: pulse-flow 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="min-h-screen font-sans antialiased selection:bg-amber-500/30 selection:text-amber-200 grid-bg">
+
+    <!-- ======================================================================= -->
+    <!-- STICKY TOP NAVIGATION & HARDWARE TELEMETRY BAR                          -->
+    <!-- ======================================================================= -->
+    <header class="sticky top-0 z-50 border-b border-zinc-800/90 bg-zinc-950/90 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="w-9 h-9 rounded-lg bg-amber-500/15 border border-amber-500/40 flex items-center justify-center text-amber-400 font-mono font-bold text-sm shadow-inner">
+                    M7
+                </div>
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <h1 class="font-bold text-sm sm:text-base tracking-tight text-zinc-100">SYSTEM.HTML // MULTI-AGENT SANDBOX TOPOLOGY</h1>
+                        <span class="hidden md:inline-block text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">Air-Gapped Host Storage</span>
+                    </div>
+                    <p class="text-[11px] text-zinc-400 hidden sm:block">RTX 3070 Ti (8GB) • 64GB DDR5 (40GB User / 24GB AI) • M7 Linux Sandbox • 5TB Vault</p>
+                </div>
+            </div>
+
+            <!-- Quick Section Jump Links -->
+            <nav class="hidden lg:flex items-center space-x-1 text-xs font-mono">
+                <a href="#topology" class="px-2.5 py-1.5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900 transition">01.Hardware</a>
+                <a href="#agents" class="px-2.5 py-1.5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900 transition">02.Agents</a>
+                <a href="#claude-gate" class="px-2.5 py-1.5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900 transition">03.Claude2FA</a>
+                <a href="#memory" class="px-2.5 py-1.5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900 transition">04.MemoryAudit</a>
+                <a href="#projector" class="px-2.5 py-1.5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900 transition">05.Projector&amp;I/O</a>
+            </nav>
+
+            <!-- Strictly Verified Hardware Pill -->
+            <div class="flex items-center space-x-2 text-xs font-mono">
+                <div class="px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 flex items-center space-x-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    <span>GPU:</span>
+                    <span class="text-amber-400 font-bold">RTX 3070 Ti (8GB)</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-14">
+
+        <!-- ======================================================================= -->
+        <!-- SECTION 1: HARDWARE ISOLATION, 5TB DRIVE & IDLE-AWARE GPU SCHEDULER     -->
+        <!-- ======================================================================= -->
+        <section id="topology" class="space-y-6">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-2 border-b border-zinc-800 pb-4">
+                <div>
+                    <span class="text-xs font-mono uppercase tracking-wider text-amber-400">01 // Physical Isolation &amp; Resource Topology</span>
+                    <h2 class="text-2xl font-bold text-zinc-100 mt-0.5">Main PC (3070 Ti) ↔ M7 Sandbox Server ↔ 5TB Hardware-Locked Drive</h2>
+                </div>
+                <p class="text-xs font-mono text-zinc-400">Click any hardware block or switch the Time-of-Day simulator to inspect how your 3070 Ti &amp; 5TB drive operate.</p>
+            </div>
+
+            <!-- Interactive Time-of-Day / Idle Mode Switcher -->
+            <div class="p-4 rounded-2xl bg-zinc-900/90 border border-zinc-800 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                <div class="space-y-1">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs font-mono uppercase px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">GPU &amp; RAM Scheduler Simulator</span>
+                        <span id="sched-status-title" class="text-sm font-bold text-zinc-100">Active Daytime Mode (User Gaming / Coding)</span>
+                    </div>
+                    <p id="sched-status-desc" class="text-xs text-zinc-400">
+                        Main PC reserves 40GB DDR5 + 85% of RTX 3070 Ti for you. Only fast Qwen2.5-3B/7B voice turns run; heavy tasks queue in M7 until `GetLastInputInfo` detects 10m idle.
+                    </p>
+                </div>
+                <div class="flex flex-wrap gap-2 shrink-0 font-mono text-xs">
+                    <button onclick="setPowerSchedule('active')" id="btn-sched-active" class="px-3.5 py-2 rounded-xl bg-amber-500 text-zinc-950 font-bold transition">
+                        ☀️ Daytime Active (User Priority)
+                    </button>
+                    <button onclick="setPowerSchedule('idle')" id="btn-sched-idle" class="px-3.5 py-2 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 transition">
+                        💤 Daytime Idle (&gt;10m AFK)
+                    </button>
+                    <button onclick="setPowerSchedule('night')" id="btn-sched-night" class="px-3.5 py-2 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 transition">
+                        🌙 05:00 AM Pre-Wakeup Crunch
+                    </button>
+                </div>
+            </div>
+
+            <!-- Main Topology Grid: 7 Cols Diagram + 5 Cols Deep Inspector -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                
+                <!-- Left 7 Cols: Interactive Hardware Topology -->
+                <div class="lg:col-span-7 space-y-4">
+
+                    <!-- Top Row: Main Desktop vs M7 Server -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        
+                        <!-- Node 1: Main Desktop Workstation -->
+                        <button onclick="inspectHardware('mainpc')" id="hw-mainpc" class="hw-node hw-node-active text-left p-5 rounded-2xl bg-zinc-900/80 border-2 border-zinc-800 hover:border-zinc-700 transition-all space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-mono uppercase text-amber-400 font-semibold">NODE A // MAIN DESKTOP PC</span>
+                                <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">NO AGENT FS ACCESS</span>
+                            </div>
+                            <h3 class="text-lg font-bold text-zinc-100">Workstation &amp; Inference Host</h3>
+                            
+                            <!-- Live Resource Bars controlled by Simulator -->
+                            <div class="space-y-2 pt-1 font-mono text-xs">
+                                <div class="flex justify-between">
+                                    <span class="text-zinc-400">RTX 3070 Ti (8GB VRAM)</span>
+                                    <span id="bar-vram-label" class="text-amber-400">2.4 GB AI / 5.6 GB User</span>
+                                </div>
+                                <div class="w-full h-2 rounded-full bg-zinc-800 overflow-hidden flex">
+                                    <div id="bar-vram-ai" class="bg-amber-500 h-full transition-all duration-500" style="width: 30%"></div>
+                                    <div id="bar-vram-user" class="bg-emerald-500/40 h-full transition-all duration-500" style="width: 70%"></div>
+                                </div>
+
+                                <div class="flex justify-between pt-1">
+                                    <span class="text-zinc-400">64GB DDR5 Allocation</span>
+                                    <span id="bar-ram-label" class="text-sky-400">40 GB Reserved User / 24 GB AI Pool</span>
+                                </div>
+                                <div class="w-full h-2 rounded-full bg-zinc-800 overflow-hidden flex">
+                                    <div id="bar-ram-user" class="bg-sky-500 h-full transition-all duration-500" style="width: 62.5%"></div>
+                                    <div id="bar-ram-ai" class="bg-purple-500/70 h-full transition-all duration-500" style="width: 37.5%"></div>
+                                </div>
+                            </div>
+
+                            <div class="pt-2 border-t border-zinc-800/80 text-xs text-zinc-400 space-y-1">
+                                <div>• <strong class="text-zinc-200">Ollama Engine (:11434):</strong> Loans GPU inference to M7</div>
+                                <div>• <strong class="text-zinc-200">Host Control MCP (:8090):</strong> Movie/Racing Screen Switch + App Launch</div>
+                                <div>• <strong class="text-zinc-200">Internal NVMe:</strong> Physically unreachable by M7 Agents</div>
+                            </div>
+                        </button>
+
+                        <!-- Node 2: M7 Sandbox Server -->
+                        <button onclick="inspectHardware('m7')" id="hw-m7" class="hw-node text-left p-5 rounded-2xl bg-zinc-900/80 border-2 border-zinc-800 hover:border-zinc-700 transition-all space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-mono uppercase text-sky-400 font-semibold">NODE B // M7 SANDBOX SERVER</span>
+                                <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-sky-500/15 text-sky-300 border border-sky-500/30">AGENT EXECUTION HOST</span>
+                            </div>
+                            <h3 class="text-lg font-bold text-zinc-100">Low-Power Linux Sandbox Box</h3>
+                            <p class="text-xs text-zinc-400 leading-relaxed">
+                                Basic CPU/Mobo/RAM server where Rocky, Jarvis, Mother, and Skynet actually live. Has full internet access and scratchpad filesystem inside rootless Docker containers.
+                            </p>
+                            <div class="pt-2 border-t border-zinc-800/80 text-xs text-zinc-400 space-y-1 font-mono">
+                                <div>• <span class="text-emerald-400">CRON Engine:</span> 05:00 AM Batch &amp; Weekly Git Sync</div>
+                                <div>• <span class="text-amber-400">FCM Push Bridge:</span> Sends 2FA &amp; Alerts to Phone</div>
+                                <div>• <span class="text-sky-400">Claude Gate Proxy:</span> Locked until 2FA TOTP Lease</div>
+                                <div>• <span class="text-purple-400">Job Queue:</span> Holds daytime tasks until 3070 Ti is idle</div>
+                            </div>
+                        </button>
+                    </div>
+
+                    <!-- Middle Row: Narrow Firewall Bridge & Screen Switcher -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <button onclick="inspectHardware('display')" id="hw-display" class="hw-node text-left p-4 rounded-2xl bg-zinc-900/70 border-2 border-zinc-800 hover:border-zinc-700 transition-all space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-mono text-amber-400 uppercase">Display &amp; App MCP Bridge</span>
+                                <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-300">Port :8090 Whitelist</span>
+                            </div>
+                            <h4 class="font-bold text-sm text-zinc-100">Sim Rig &amp; Bed TV Display Switcher + Projector</h4>
+                            <p class="text-xs text-zinc-400">
+                                Exposes strictly 3 endpoints to M7: <code class="text-amber-300">set_display_mode("movie" | "racing" | "desk")</code>, <code class="text-amber-300">launch_whitelisted_app()</code>, and <code class="text-amber-300">render_projector_hud()</code>.
+                            </p>
+                        </button>
+
+                        <button onclick="inspectHardware('drive')" id="hw-drive" class="hw-node text-left p-4 rounded-2xl bg-zinc-900/70 border-2 border-zinc-800 hover:border-zinc-700 transition-all space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-mono text-emerald-400 uppercase">5TB External Drive (Dad's Drive)</span>
+                                <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">Hardware Air-Gapped</span>
+                            </div>
+                            <h4 class="font-bold text-sm text-zinc-100">Hardware-Locked Agent Vault &amp; Weekly Backup</h4>
+                            <p class="text-xs text-zinc-400">
+                                Physically wired to M7 Server (or toggled via a $20 USB 3.0 Hardware Relay Switch). Holds all GitHub repo clones, ChromaDB memory, raw Wispr audio, and weekly PC backups.
+                            </p>
+                        </button>
+                    </div>
+
+                    <!-- Critical Engineering Callout: Why Dual-USB Plugging Corrupts & How to Solve It Hardware-First -->
+                    <div class="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/30 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-mono font-bold uppercase text-amber-400">⚡ Hardware Engineering Note: Plugging the 5TB Drive into Both PCs</span>
+                            <span class="text-[11px] font-mono text-zinc-400">Zero-Trust Physical Lock</span>
+                        </div>
+                        <p class="text-xs text-zinc-300 leading-relaxed">
+                            Standard USB 3.0 drives and filesystems (NTFS/ext4/exFAT) <strong class="text-zinc-100">cannot be mounted by two USB hosts simultaneously</strong>—doing so with a Y-cable causes immediate filesystem table corruption because each OS caches block allocations independently. To achieve your exact goal (<strong class="text-amber-300">100% hardware-locked away from your Main PC's internal drives</strong>, while still backing up your Main PC weekly), click the <strong class="text-zinc-100">5TB External Drive</strong> node above to compare the <strong class="text-emerald-300">$18 Physical USB 3.0 Bi-Directional Relay Switch</strong> vs. <strong class="text-sky-300">One-Way Push-Only `rsync` Vault</strong>.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Right 5 Cols: Deep-Dive Hardware & Protocol Inspector -->
+                <div class="lg:col-span-5 rounded-2xl bg-zinc-900/95 border border-zinc-800 p-6 space-y-5 sticky top-24 shadow-2xl">
+                    <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+                        <div>
+                            <span id="hw-insp-badge" class="text-[11px] font-mono uppercase px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">NODE A // MAIN WORKSTATION</span>
+                            <h3 id="hw-insp-title" class="text-lg font-bold text-zinc-100 mt-1">RTX 3070 Ti (8GB) &amp; 64GB DDR5 Host</h3>
+                        </div>
+                        <div class="text-right font-mono">
+                            <div class="text-[10px] text-zinc-400 uppercase">Isolation Level</div>
+                            <div id="hw-insp-iso" class="text-xs font-bold text-emerald-400">Hardware Air-Gapped FS</div>
+                        </div>
+                    </div>
+
+                    <p id="hw-insp-desc" class="text-sm text-zinc-300 leading-relaxed">
+                        Your Main PC never runs untrusted agent bash scripts and never exposes `C:\` or your personal drives. It acts strictly as an Inference Co-Processor (via Ollama on the 3070 Ti) and a narrow 3-button remote control for your screens and apps.
+                    </p>
+
+                    <div class="space-y-2">
+                        <div class="text-xs font-mono uppercase text-zinc-400">Hardware &amp; Memory Guardrails</div>
+                        <div id="hw-insp-specs" class="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 font-mono text-xs text-zinc-300 space-y-1.5">
+                            <div><span class="text-amber-400">VRAM CAP :</span> 8 GB GDDR6X (Qwen2.5-7B-Q4 uses 4.8 GB; 3B uses 2.2 GB)</div>
+                            <div><span class="text-sky-400">DDR5 CAP :</span> 40 GB Locked for User • 24 GB Max for Ollama Context/Offload</div>
+                            <div><span class="text-emerald-400">IDLE HOOK:</span> Win32 `GetLastInputInfo()` pauses heavy jobs while you move mouse/keyboard</div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <div class="text-xs font-mono uppercase text-zinc-400">Configuration / Script Blueprint</div>
+                        <pre id="hw-insp-code" class="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs font-mono text-amber-200/90 overflow-x-auto leading-relaxed"># Main PC: Idle-Aware GPU Gatekeeper (runs on Main PC)
+def can_m7_use_heavy_gpu() -> bool:
+    idle_sec = get_win32_idle_seconds()
+    hour = datetime.now().hour
+    # Full 3070 Ti unleashed at 5:00 AM or when AFK > 10 mins
+    return (hour == 5) or (idle_sec > 600 and not is_fullscreen_game_running())</pre>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ======================================================================= -->
+        <!-- SECTION 2: THE 4-AGENT ROSTER (ROCKY, JARVIS, MOTHER, SKYNET)           -->
+        <!-- ======================================================================= -->
+        <section id="agents" class="space-y-6">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-2 border-b border-zinc-800 pb-4">
+                <div>
+                    <span class="text-xs font-mono uppercase tracking-wider text-sky-400">02 // Specialized Multi-Agent Council</span>
+                    <h2 class="text-2xl font-bold text-zinc-100 mt-0.5">Four Personas, One Shared 3070 Ti Engine, Strict Role Boundaries</h2>
+                </div>
+                <p class="text-xs font-mono text-zinc-400">Click any agent card below to inspect its voice pipeline, sandbox permissions, and model routing.</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Agent 1: ROCKY -->
+                <button onclick="selectAgent('rocky')" id="agent-card-rocky" class="agent-card agent-active text-left p-5 rounded-2xl bg-zinc-900/85 border-2 border-zinc-800 hover:border-zinc-700 transition-all flex flex-col justify-between space-y-4">
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">AGENT 01 // DAILY OPS</span>
+                            <span class="text-xs font-mono text-emerald-400">&lt; 800ms</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-zinc-100">♪♫ ROCKY</h3>
+                        <p class="text-xs text-zinc-400 leading-relaxed">
+                            Fast, eager Eridian engineer. Handles live voice conversations, Half Full tasks, timers/alarms, switching Movie Mode (Bed TV) / Racing Mode (Sim TV), and launching Steam games.
+                        </p>
+                    </div>
+                    <div class="pt-3 border-t border-zinc-800/80 font-mono text-[11px] text-zinc-400 space-y-1">
+                        <div><span class="text-zinc-200">Model:</span> Qwen2.5-7B (Daytime Fast)</div>
+                        <div><span class="text-zinc-200">Voice:</span> Piper + MIDI Chords / XTTS</div>
+                    </div>
+                </button>
+
+                <!-- Agent 2: JARVIS -->
+                <button onclick="selectAgent('jarvis')" id="agent-card-jarvis" class="agent-card text-left p-5 rounded-2xl bg-zinc-900/85 border-2 border-zinc-800 hover:border-zinc-700 transition-all flex flex-col justify-between space-y-4">
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-sky-500/15 text-sky-300 border border-sky-500/30">AGENT 02 // CODING</span>
+                            <span class="text-xs font-mono text-amber-400">2FA Gated</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-zinc-100">⚙️ JARVIS</h3>
+                        <p class="text-xs text-zinc-400 leading-relaxed">
+                            Lives inside the 5TB GitHub mirror on the M7 server. Runs local test suites with sandboxed mock keys, inspects diffs, and escalates to **Claude Code** ONLY when you unlock a 2FA Mobile Lease.
+                        </p>
+                    </div>
+                    <div class="pt-3 border-t border-zinc-800/80 font-mono text-[11px] text-zinc-400 space-y-1">
+                        <div><span class="text-zinc-200">Model:</span> Qwen2.5-Coder-7B + Claude</div>
+                        <div><span class="text-zinc-200">Voice:</span> crisp British baritone Piper</div>
+                    </div>
+                </button>
+
+                <!-- Agent 3: MOTHER -->
+                <button onclick="selectAgent('mother')" id="agent-card-mother" class="agent-card text-left p-5 rounded-2xl bg-zinc-900/85 border-2 border-zinc-800 hover:border-zinc-700 transition-all flex flex-col justify-between space-y-4">
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/30">AGENT 03 // TELEMETRY</span>
+                            <span class="text-xs font-mono text-purple-300">05:00 AM Cron</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-zinc-100">🛰️ MOTHER</h3>
+                        <p class="text-xs text-zinc-400 leading-relaxed">
+                            Runs at 5:00 AM while you sleep (using 100% of the 3070 Ti + 24GB DDR5). Aggregates all 13 data streams, compiles your morning briefing, and renders the 6:00 AM Projector UI.
+                        </p>
+                    </div>
+                    <div class="pt-3 border-t border-zinc-800/80 font-mono text-[11px] text-zinc-400 space-y-1">
+                        <div><span class="text-zinc-200">Model:</span> Llama-3.1-8B / Qwen-14B (Offload)</div>
+                        <div><span class="text-zinc-200">Voice:</span> Calm MU-TH-UR 6000 synth</div>
+                    </div>
+                </button>
+
+                <!-- Agent 4: SKYNET -->
+                <button onclick="selectAgent('skynet')" id="agent-card-skynet" class="agent-card text-left p-5 rounded-2xl bg-zinc-900/85 border-2 border-zinc-800 hover:border-zinc-700 transition-all flex flex-col justify-between space-y-4">
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-rose-500/15 text-rose-300 border border-rose-500/30">AGENT 04 // AUDIT &amp; SEC</span>
+                            <span class="text-xs font-mono text-rose-400">Zero-Trust</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-zinc-100">🛡️ SKYNET</h3>
+                        <p class="text-xs text-zinc-400 leading-relaxed">
+                            Compliance, security, and epistemic memory auditor.Revokes expired Claude leases, verifies weekly 5TB backups, blocks unverified memory hallucinations, and strips forced personalization.
+                        </p>
+                    </div>
+                    <div class="pt-3 border-t border-zinc-800/80 font-mono text-[11px] text-zinc-400 space-y-1">
+                        <div><span class="text-zinc-200">Model:</span> Deterministic Rules + 7B Judge</div>
+                        <div><span class="text-zinc-200">Voice:</span> Low-frequency clinical alert</div>
+                    </div>
+                </button>
+            </div>
+
+            <!-- Selected Agent Detail Strip -->
+            <div class="p-6 rounded-2xl bg-zinc-900/95 border border-zinc-800 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                <div class="lg:col-span-5 space-y-2">
+                    <span id="ag-detail-tag" class="text-xs font-mono uppercase text-amber-400">ACTIVE SELECTION // ROCKY</span>
+                    <h3 id="ag-detail-name" class="text-xl font-bold text-zinc-100">Rocky: Real-Time Conversational &amp; Hardware Switch Operator</h3>
+                    <p id="ag-detail-desc" class="text-xs text-zinc-300 leading-relaxed">
+                        Rocky is your default voice interface on both phone and desktop. Because Mother pre-computes your entire schedule, email digest, and task state at 5:00 AM into a fast JSON cache on the 5TB drive, when you ask Rocky "What do I have going on today?", he doesn't need to crawl Google Calendar live—he reads Mother's pre-baked brief in 2ms and answers in under a second!
+                    </p>
+                </div>
+                <div class="lg:col-span-7 grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono text-xs">
+                    <div class="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 space-y-1">
+                        <div class="text-zinc-400 text-[11px]">ALLOWED MCP TOOLS</div>
+                        <div id="ag-detail-tools" class="text-emerald-300 leading-relaxed">
+                            • set_display_mode(movie/racing)<br>
+                            • launch_steam_game()<br>
+                            • read_morning_brief()<br>
+                            • timers_and_alarms()
+                        </div>
+                    </div>
+                    <div class="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 space-y-1">
+                        <div class="text-zinc-400 text-[11px]">HARD PROHIBITIONS</div>
+                        <div id="ag-detail-deny" class="text-rose-300 leading-relaxed">
+                            • Cannot call Claude API<br>
+                            • Cannot read Main PC C:\<br>
+                            • Cannot modify Git repos<br>
+                            • Cannot bypass Skynet memory
+                        </div>
+                    </div>
+                    <div class="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 space-y-1">
+                        <div class="text-zinc-400 text-[11px]">POST-TURN HOOK</div>
+                        <div id="ag-detail-hook" class="text-amber-300 leading-relaxed">
+                            1. Speak reply in &lt;800ms<br>
+                            2. Async send transcript to Skynet Reflection Queue<br>
+                            3. Extract feedback/rules
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ======================================================================= -->
+        <!-- SECTION 3: CLAUDE CODE 2FA MOBILE LEASE & GUARDRAIL SIMULATOR           -->
+        <!-- ======================================================================= -->
+        <section id="claude-gate" class="space-y-6">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-2 border-b border-zinc-800 pb-4">
+                <div>
+                    <span class="text-xs font-mono uppercase tracking-wider text-emerald-400">03 // Two-Factor API Bastion</span>
+                    <h2 class="text-2xl font-bold text-zinc-100 mt-0.5">Jarvis ↔ Claude Code 2FA Time-Lease &amp; Mock-Key Sandbox</h2>
+                </div>
+                <p class="text-xs font-mono text-zinc-400">Agents NEVER hold your raw Anthropic API key. The key lives inside `claude-gate-proxy` on M7 and requires your phone approval.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Left 7 Cols: Interactive 2FA Approval Simulator -->
+                <div class="lg:col-span-7 p-6 rounded-2xl bg-zinc-900/90 border border-zinc-800 space-y-5">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <span class="text-xs font-mono text-zinc-400 uppercase">LIVE GATEWAY STATUS</span>
+                            <div class="flex items-center space-x-2 mt-0.5">
+                                <span id="lease-dot" class="w-3 h-3 rounded-full bg-rose-500"></span>
+                                <h3 id="lease-status-text" class="text-lg font-bold text-rose-400 font-mono">LOCKED // HTTP 403 FORBIDDEN TO ALL AGENTS</h3>
+                            </div>
+                        </div>
+                        <div class="text-right font-mono">
+                            <div class="text-[11px] text-zinc-400">LEASE TIMER</div>
+                            <div id="lease-timer" class="text-xl font-bold text-zinc-300">00:00</div>
+                        </div>
+                    </div>
+
+                    <!-- Interactive Step Flow -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono text-xs">
+                        <button onclick="requestClaudeAccess()" class="p-3.5 rounded-xl bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-left transition space-y-1">
+                            <div class="text-sky-400 font-bold">1. Trigger Jarvis Task</div>
+                            <div class="text-zinc-400 text-[11px]">Ask Jarvis: "Refactor Half Full calendar sync &amp; run tests"</div>
+                        </button>
+
+                        <button onclick="approveClaudeLease(20)" id="btn-approve-2fa" class="p-3.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-left transition space-y-1">
+                            <div class="text-emerald-300 font-bold">2. Approve on Phone (2FA)</div>
+                            <div class="text-zinc-300 text-[11px]">Tap FCM Push or Enter 6-Digit Code: <span id="totp-code" class="text-amber-300 font-bold">849-204</span> (20m Lease)</div>
+                        </button>
+
+                        <button onclick="revokeClaudeLease()" class="p-3.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-left transition space-y-1">
+                            <div class="text-rose-300 font-bold">3. Skynet Kill-Switch</div>
+                            <div class="text-zinc-400 text-[11px]">Immediately revoke token lease &amp; sever proxy session</div>
+                        </button>
+                    </div>
+
+                    <!-- Live Proxy Audit Terminal -->
+                    <div class="space-y-1.5">
+                        <div class="flex items-center justify-between text-xs font-mono text-zinc-400">
+                            <span>M7 `claude-gate-proxy` AUDIT LOG</span>
+                            <span>COST CAP: $1.50 / LEASE • FALLBACK QUERIES: BLOCKED</span>
+                        </div>
+                        <pre id="claude-audit-log" class="p-4 rounded-xl bg-zinc-950 border border-zinc-800 font-mono text-xs text-zinc-300 h-40 overflow-y-auto leading-relaxed">[11:50:02] SKYNET_GATE: Anthropic API Key encrypted in root vault. Proxy listening on 127.0.0.1:9001.
+[11:51:14] ROCKY -> tried fallback query to Claude ("What is weather?"). BLOCKED (Rule: Only Jarvis + User Explicit Coding Task).
+[11:52:00] JARVIS: Ready in /mnt/5tb_vault/repos/half-full. Running local pytest with MOCK_API_KEYS... PASS.</pre>
+                    </div>
+                </div>
+
+                <!-- Right 5 Cols: How Testing Keys & Guardrails Work -->
+                <div class="lg:col-span-5 p-6 rounded-2xl bg-zinc-900/80 border border-zinc-800 space-y-4">
+                    <span class="text-xs font-mono uppercase text-amber-400">How We Protect Your API Keys &amp; Wallet</span>
+                    <h3 class="text-lg font-bold text-zinc-100">3-Layer Sandbox for Jarvis &amp; Claude Code</h3>
+                    
+                    <div class="space-y-3 text-xs text-zinc-300 leading-relaxed">
+                        <div class="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 space-y-1">
+                            <div class="font-mono font-bold text-sky-400">1. Zero-Fallback Policy (No Lazy Delegating)</div>
+                            <p class="text-zinc-400">
+                                Rocky, Mother, and Skynet are physically blocked at the proxy level from ever calling Claude. Even Jarvis cannot call Claude unless the request payload includes a valid <code class="text-amber-300">X-User-2FA-Lease</code> signed by your phone's Code Center app.
+                            </p>
+                        </div>
+
+                        <div class="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 space-y-1">
+                            <div class="font-mono font-bold text-emerald-400">2. Ephemeral Scoped Test Keys &amp; Local Mocks</div>
+                            <p class="text-zinc-400">
+                                When Jarvis runs tests on your repos inside the M7 sandbox, it defaults to <code class="text-emerald-300">.env.sandbox</code> (which points to local WireMock/SQLite stubs or read-only test keys with $0 spend limits) so Jarvis can run full integration tests without touching production data.
+                            </p>
+                        </div>
+
+                        <div class="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 space-y-1">
+                            <div class="font-mono font-bold text-purple-400">3. Git Branch Quarantine on the 5TB Drive</div>
+                            <p class="text-zinc-400">
+                                Every Sunday night, M7 runs <code class="text-purple-300">git fetch --all</code> across all your GitHub repos onto the 5TB drive. Jarvis can only commit to <code class="text-purple-300">jarvis/draft-*</code> branches—never pushing to `main` without your approval.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ======================================================================= -->
+        <!-- SECTION 4: ANTI-HALLUCINATION & NATURAL PERSONALIZATION MEMORY ENGINE   -->
+        <!-- ======================================================================= -->
+        <section id="memory" class="space-y-6">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-2 border-b border-zinc-800 pb-4">
+                <div>
+                    <span class="text-xs font-mono uppercase tracking-wider text-rose-400">04 // Epistemic Memory &amp; Anti-Shoehorn Filter</span>
+                    <h2 class="text-2xl font-bold text-zinc-100 mt-0.5">How We Stop "3080" Hallucinations &amp; Cringe Forced Personalization</h2>
+                </div>
+                <p class="text-xs font-mono text-zinc-400">Every conversation runs an async post-turn reflection hook, graded by Skynet before touching long-term memory.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                <!-- Left 6 Cols: The 3-Tier Epistemic Fact Ledger -->
+                <div class="lg:col-span-6 p-6 rounded-2xl bg-zinc-900/90 border border-zinc-800 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-base font-bold text-zinc-100">3-Tier Epistemic Memory Ledger (On 5TB Drive)</h3>
+                        <span class="text-xs font-mono text-emerald-400">Conflict-Checked</span>
+                    </div>
+                    <p class="text-xs text-zinc-400">
+                        Why did standard AI assume you had a 3080? Because standard memory systems treat every single transcript token as permanent truth. In Project Rocky, candidate facts must pass **Corroboration &amp; Telemetry Verification**:
+                    </p>
+
+                    <div class="space-y-3 font-mono text-xs">
+                        <!-- Tier A: Verified Ground Truth -->
+                        <div class="p-3.5 rounded-xl bg-emerald-950/30 border border-emerald-500/40 space-y-1">
+                            <div class="flex items-center justify-between">
+                                <span class="text-emerald-300 font-bold">TIER A // VERIFIED GROUND TRUTH (Weight: 1.0)</span>
+                                <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px]">ACTIVE IN RAG</span>
+                            </div>
+                            <div class="text-zinc-200">• GPU = <strong class="text-white">NVIDIA RTX 3070 Ti (8GB)</strong> <span class="text-emerald-400">[52 mentions + verified by `nvidia-smi`]</span></div>
+                            <div class="text-zinc-200">• System RAM = <strong class="text-white">64GB DDR5</strong> <span class="text-emerald-400">[Verified by OS telemetry]</span></div>
+                            <div class="text-zinc-200">• Display Modes = <strong class="text-white">Movie (Bed TV) / Racing (Sim TV)</strong> <span class="text-emerald-400">[Explicit Rule]</span></div>
+                        </div>
+
+                        <!-- Tier B: Explicit Behavioral Rules -->
+                        <div class="p-3.5 rounded-xl bg-amber-950/30 border border-amber-500/40 space-y-1">
+                            <div class="flex items-center justify-between">
+                                <span class="text-amber-300 font-bold">TIER B // EXPLICIT USER FEEDBACK &amp; RULES (Immediate)</span>
+                                <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px]">POST-TURN HOOK</span>
+                            </div>
+                            <div class="text-zinc-200">• "Never max out my GPU while I'm actively using my PC during the day."</div>
+                            <div class="text-zinc-200">• "Never shoehorn my car or unrelated hobbies into coding answers."</div>
+                        </div>
+
+                        <!-- Tier C: Quarantine / Dropped Hallucinations -->
+                        <div class="p-3.5 rounded-xl bg-rose-950/30 border border-rose-500/40 space-y-1">
+                            <div class="flex items-center justify-between">
+                                <span class="text-rose-300 font-bold">TIER C // QUARANTINE &amp; DROPPED OUTLIERS (Weight: 0.0)</span>
+                                <span class="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 text-[10px]">BLOCKED BY SKYNET</span>
+                            </div>
+                            <div class="text-zinc-300 line-through">• Claim: "User has an RTX 3080 / 3080 Ti"</div>
+                            <div class="text-rose-300 text-[11px]">↳ Reason: Mentioned 1x (likely Whisper STT misrecognition of "3070 Ti"). Contradicts Tier A `nvidia-smi` hardware ground truth. Purged at 05:00 AM audit.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right 6 Cols: Interactive "Natural vs Forced Personalization" Simulator -->
+                <div class="lg:col-span-6 p-6 rounded-2xl bg-zinc-900/90 border border-zinc-800 space-y-4 flex flex-col justify-between">
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-base font-bold text-zinc-100">Interactive "Zero-Shoehorn" Personalization Filter</h3>
+                            <span class="text-xs font-mono text-sky-400">Domain Intersection Rule</span>
+                        </div>
+                        <p class="text-xs text-zinc-400">
+                            Personal memory is injected <strong class="text-zinc-100">only when its domain tag intersects the active task</strong>, and strictly as a <strong class="text-amber-300">silent parameter</strong>—never as creepy small talk. Click a scenario below to compare:
+                        </p>
+
+                        <!-- Scenario Selector Buttons -->
+                        <div class="flex flex-wrap gap-2 font-mono text-xs pt-1">
+                            <button onclick="setMemScenario('code')" id="btn-mem-code" class="px-3 py-1.5 rounded-lg bg-amber-500 text-zinc-950 font-bold transition">
+                                Scenario 1: Python Coding Question
+                            </button>
+                            <button onclick="setMemScenario('movie')" id="btn-mem-movie" class="px-3 py-1.5 rounded-lg bg-zinc-950 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 transition">
+                                Scenario 2: "Put a movie on"
+                            </button>
+                            <button onclick="setMemScenario('gpu')" id="btn-mem-gpu" class="px-3 py-1.5 rounded-lg bg-zinc-950 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 transition">
+                                Scenario 3: "Can I run this 14B model?"
+                            </button>
+                        </div>
+
+                        <!-- Comparison Cards -->
+                        <div class="space-y-3 pt-2">
+                            <div class="p-3.5 rounded-xl bg-rose-950/25 border border-rose-500/30 space-y-1">
+                                <div class="text-[11px] font-mono text-rose-400 font-bold uppercase">❌ Standard AI (Forced Cringe Personalization / Unchecked Memory)</div>
+                                <p id="mem-bad-example" class="text-xs text-zinc-300 italic">
+                                    "Here is your Python async loop! That high-speed concurrency is going to purr just like the V8 in your 2003 C5 Corvette across your dual RTX 3080 GPUs!"
+                                </p>
+                            </div>
+
+                            <div class="p-3.5 rounded-xl bg-emerald-950/25 border border-emerald-500/40 space-y-1">
+                                <div class="text-[11px] font-mono text-emerald-400 font-bold uppercase">✅ Project Rocky + Skynet Gate (Silent Constraint Personalization)</div>
+                                <p id="mem-good-example" class="text-xs text-zinc-100 font-mono">
+                                    "♪♫ I write async Python worker pool for you now. I cap default thread memory so it stays light on your machine. You test in sandbox now, question? ♫♪"
+                                </p>
+                                <div id="mem-good-reason" class="text-[11px] font-mono text-emerald-300/90 pt-1">
+                                    ↳ Memory Filter: Stripped automotive/unrelated tags. Applied silent preference: "Write clean, low-overhead Python."
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-3 rounded-xl bg-zinc-950 border border-zinc-800 font-mono text-[11px] text-zinc-400">
+                        <strong class="text-amber-300">System Prompt Rule Enforced by Skynet:</strong> "You have access to User Facts strictly to resolve ambiguous references (e.g., 'switch to movie mode') or respect resource constraints. NEVER mention a user fact merely to demonstrate that you know it."
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ======================================================================= -->
+        <!-- SECTION 5: 6:00 AM PROJECTOR HUD PREVIEW, 13 DATA STREAMS & <$200 BOM   -->
+        <!-- ======================================================================= -->
+        <section id="projector" class="space-y-6">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-2 border-b border-zinc-800 pb-4">
+                <div>
+                    <span class="text-xs font-mono uppercase tracking-wider text-purple-400">05 // Morning Projector UI, I/O Matrix &amp; &lt;$200 Hardware BOM</span>
+                    <h2 class="text-2xl font-bold text-zinc-100 mt-0.5">6:00 AM Wall Projector HUD &amp; Complete 13-Source Data Pipeline</h2>
+                </div>
+                <p class="text-xs font-mono text-zinc-400">Pre-computed at 05:00 AM by Mother using 100% of your RTX 3070 Ti so wakeup queries take 0ms.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                <!-- Left 7 Cols: Mock 6:00 AM Projector Wall HUD -->
+                <div class="lg:col-span-7 rounded-2xl bg-zinc-950 border-2 border-amber-500/40 p-6 space-y-5 shadow-2xl relative overflow-hidden">
+                    <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+                        <div class="flex items-center space-x-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
+                            <span class="font-mono text-xs uppercase text-amber-300 font-bold">PROJECTOR HUD // BEDROOM WALL DISPLAY (06:00 AM)</span>
+                        </div>
+                        <span class="font-mono text-xs text-zinc-400">Compiled at 05:14 AM by MOTHER</span>
+                    </div>
+
+                    <!-- Projected Widgets Grid -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono">
+                        <div class="p-4 rounded-xl bg-zinc-900/90 border border-zinc-800 space-y-1">
+                            <div class="text-[10px] text-zinc-400 uppercase">WAKEUP BRIEF &amp; WEATHER</div>
+                            <div class="text-2xl font-bold text-zinc-100">06:00 AM</div>
+                            <div class="text-xs text-amber-300">East Lansing • 48°F Clear</div>
+                            <div class="text-[11px] text-zinc-400 pt-1">♪♫ Rocky Alarm Ready</div>
+                        </div>
+
+                        <div class="p-4 rounded-xl bg-zinc-900/90 border border-zinc-800 space-y-1">
+                            <div class="text-[10px] text-zinc-400 uppercase">HALF FULL + GCAL TODAY</div>
+                            <div class="text-xs text-emerald-300 font-bold">3 Priority Blocks</div>
+                            <div class="text-[11px] text-zinc-300">• 10:00 Deep Coding</div>
+                            <div class="text-[11px] text-zinc-300">• 14:00 GitHub PR Review</div>
+                            <div class="text-[11px] text-zinc-400">• 20:00 Sim Rig Session</div>
+                        </div>
+
+                        <div class="p-4 rounded-xl bg-zinc-900/90 border border-zinc-800 space-y-1">
+                            <div class="text-[10px] text-zinc-400 uppercase">YESTERDAY TELEMETRY</div>
+                            <div class="text-xs text-sky-300 font-bold">Focus Score: 84%</div>
+                            <div class="text-[11px] text-zinc-300">• Coding: 4h 15m</div>
+                            <div class="text-[11px] text-zinc-300">• Blocked Distractions: 14</div>
+                            <div class="text-[11px] text-emerald-400">• Finances: $0 Anomalies</div>
+                        </div>
+                    </div>
+
+                    <!-- Bottom Bar of Projector: Display Mode Quick Toggle + Nightly Status -->
+                    <div class="p-3.5 rounded-xl bg-zinc-900/70 border border-zinc-800 flex flex-wrap items-center justify-between gap-2 font-mono text-xs">
+                        <div class="text-zinc-300">
+                            <span class="text-emerald-400 font-bold">✓ 5TB Vault Synced:</span> 18 GitHub Repos + 14 Wispr Voice Notes + Gmail Digest Cached
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300">Display: BED_PROJECTOR</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right 5 Cols: Under-$200 Hardware Upgrade Options -->
+                <div class="lg:col-span-5 rounded-2xl bg-zinc-900/90 border border-zinc-800 p-6 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-mono uppercase text-emerald-400">Budget Cap: Under $200</span>
+                        <span class="text-xs font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 font-bold">Recommended Spend: $48</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-zinc-100">Smart Hardware Additions (&lt;$200 Total)</h3>
+                    <p class="text-xs text-zinc-400">
+                        You cannot beat your RTX 3070 Ti for under $200 in the GPU market, so keep the 3070 Ti as your main inference engine and spend &lt;$50 on physical isolation &amp; dedicated interconnect:
+                    </p>
+
+                    <div class="space-y-2.5 font-mono text-xs">
+                        <div class="p-3 rounded-xl bg-zinc-950 border border-zinc-800 flex justify-between items-center">
+                            <div>
+                                <div class="text-zinc-100 font-bold">1. USB 3.0 Bi-Directional Switch + GPIO Relay</div>
+                                <div class="text-zinc-400 text-[11px]">Physically toggles the 5TB drive between M7 Server &amp; Main PC for weekly backup</div>
+                            </div>
+                            <span class="text-emerald-400 font-bold shrink-0 ml-3">$18</span>
+                        </div>
+
+                        <div class="p-3 rounded-xl bg-zinc-950 border border-zinc-800 flex justify-between items-center">
+                            <div>
+                                <div class="text-zinc-100 font-bold">2. Dedicated 2.5GbE USB/PCIe NIC + Cat6 Patch</div>
+                                <div class="text-zinc-400 text-[11px]">Direct point-to-point link between Main PC &amp; M7 for zero-latency Ollama streaming</div>
+                            </div>
+                            <span class="text-emerald-400 font-bold shrink-0 ml-3">$28</span>
+                        </div>
+
+                        <div class="p-3 rounded-xl bg-zinc-950 border border-zinc-800 flex justify-between items-center">
+                            <div>
+                                <div class="text-zinc-100 font-bold">3. Optional: Used Tesla P4 (8GB VRAM) for M7 Server</div>
+                                <div class="text-zinc-400 text-[11px]">Only if you ever want 100% of 7B inference offloaded onto M7 during daytime gaming</div>
+                            </div>
+                            <span class="text-amber-400 font-bold shrink-0 ml-3">~$115</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Complete 13 Data Sources + Inputs/Outputs Matrix -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                <!-- 13 Data Sources -->
+                <div class="p-5 rounded-2xl bg-zinc-900/70 border border-zinc-800 space-y-3">
+                    <div class="text-xs font-mono uppercase text-sky-400 font-bold">13 Nightly &amp; Live Data Collectors</div>
+                    <div class="flex flex-wrap gap-1.5 font-mono text-xs">
+                        <span class="px-2.5 py-1 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200">1. Gmail</span>
+                        <span class="px-2.5 py-1 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200">2. Google Drive</span>
+                        <span class="px-2.5 py-1 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200">3. Google Calendar</span>
+                        <span class="px-2.5 py-1 rounded-lg bg-zinc-950 border border-amber-500/40 text-amber-300">4. Half Full App</span>
+                        <span class="px-2.5 py-1 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200">5. PC Usage (AW)</span>
+                        <span class="px-2.5 py-1 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200">6. Phone Usage</span>
+                        <span class="px-2.5 py-1 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200">7. Browser Tabs</span>
+                        <span class="px-2.5 py-1 rounded-lg bg-zinc-950 border border-amber-500/40 text-amber-300">8. Wispr Flow + Raw WAV</span>
+                        <span class="px-2.5 py-1 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200">9. Daily Notes</span>
+                        <span class="px-2.5 py-1 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200">10. App Blocking Logs</span>
+                        <span class="px-2.5 py-1 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200">11. Finances</span>
+                        <span class="px-2.5 py-1 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200">12. GitHub Repos</span>
+                        <span class="px-2.5 py-1 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200">13. LinkedIn</span>
+                    </div>
+                </div>
+
+                <!-- Inputs Matrix -->
+                <div class="p-5 rounded-2xl bg-zinc-900/70 border border-zinc-800 space-y-3">
+                    <div class="text-xs font-mono uppercase text-amber-400 font-bold">Multimodal Inputs (Phone + Desktop)</div>
+                    <ul class="space-y-1.5 text-xs text-zinc-300 font-mono">
+                        <li>• <strong class="text-zinc-100">Microphone:</strong> Wake-word + Faster-Whisper STT &amp; Wispr Flow raw audio ingestion</li>
+                        <li>• <strong class="text-zinc-100">Text / CLI / Mobile App:</strong> Direct chat, Code Center 2FA approvals, Discord bot slash commands</li>
+                        <li>• <strong class="text-zinc-100">Video / Screen Capture (Opt-In):</strong> On-demand monitor snapshot for debugging UI</li>
+                    </ul>
+                </div>
+
+                <!-- Outputs Matrix -->
+                <div class="p-5 rounded-2xl bg-zinc-900/70 border border-zinc-800 space-y-3">
+                    <div class="text-xs font-mono uppercase text-emerald-400 font-bold">10 Action &amp; Media Outputs</div>
+                    <div class="flex flex-wrap gap-1.5 font-mono text-xs">
+                        <span class="px-2.5 py-1 rounded-lg bg-zinc-950 border border-emerald-500/30 text-emerald-300">4 Distinct Voices</span>
+                        <span class="px-2.5 py-1 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200">Text &amp; Markdown</span>
+                        <span class="px-2.5 py-1 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200">5TB Vault Files</span>
+                        <span class="px-2.5 py-1 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200">Alarms &amp; Timers</span>
+                        <span class="px-2.5 py-1 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200">FCM Push Alerts</span>
+                        <span class="px-2.5 py-1 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200">SMS / Texts</span>
+                        <span class="px-2.5 py-1 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200">Discord DMs</span>
+                        <span class="px-2.5 py-1 rounded-lg bg-zinc-950 border border-amber-500/40 text-amber-300">Projector Custom UI</span>
+                        <span class="px-2.5 py-1 rounded-lg bg-zinc-950 border border-amber-500/40 text-amber-300">Movie/Racing TV Switch</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // =====================================================================
+        // 1. TIME-OF-DAY & GPU IDLE SCHEDULER SIMULATOR
+        // =====================================================================
+        function setPowerSchedule(mode) {
+            const btns = ['active', 'idle', 'night'];
+            btns.forEach(b => {
+                const el = document.getElementById('btn-sched-' + b);
+                el.className = (b === mode)
+                    ? "px-3.5 py-2 rounded-xl bg-amber-500 text-zinc-950 font-bold transition"
+                    : "px-3.5 py-2 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 transition";
+            });
+
+            const title = document.getElementById('sched-status-title');
+            const desc = document.getElementById('sched-status-desc');
+            const vramLabel = document.getElementById('bar-vram-label');
+            const vramAi = document.getElementById('bar-vram-ai');
+            const vramUser = document.getElementById('bar-vram-user');
+            const ramLabel = document.getElementById('bar-ram-label');
+            const ramUser = document.getElementById('bar-ram-user');
+            const ramAi = document.getElementById('bar-ram-ai');
+
+            if (mode === 'active') {
+                title.textContent = "Active Daytime Mode (User Gaming / Sim Racing / Coding)";
+                desc.textContent = "Main PC reserves 40GB DDR5 + 70% of RTX 3070 Ti for you. Only fast Qwen2.5-3B voice turns run; heavy jobs wait in M7 queue.";
+                vramLabel.textContent = "2.2 GB AI (Qwen-3B) / 5.8 GB User Free";
+                vramAi.style.width = "27%";
+                vramUser.style.width = "73%";
+                ramLabel.textContent = "44 GB Reserved User / 20 GB AI Pool";
+                ramUser.style.width = "68%";
+                ramAi.style.width = "32%";
+            } else if (mode === 'idle') {
+                title.textContent = "Daytime AFK / Idle Mode (GetLastInputInfo > 10 Mins)";
+                desc.textContent = "Win32 detects no mouse/keyboard/wheel input and no fullscreen game. M7 Server drains queued background jobs on the 3070 Ti.";
+                vramLabel.textContent = "5.2 GB AI (Qwen-7B/Coder) / 2.8 GB Free";
+                vramAi.style.width = "65%";
+                vramUser.style.width = "35%";
+                ramLabel.textContent = "40 GB Reserved User / 24 GB AI Pool";
+                ramUser.style.width = "62.5%";
+                ramAi.style.width = "37.5%";
+            } else {
+                title.textContent = "05:00 AM Pre-Wakeup Batch Crunch (100% 3070 Ti Unleashed)";
+                desc.textContent = "Right before your 6:00 AM alarm, Mother & Skynet use 100% of the 3070 Ti + 28GB DDR5 offload to summarize all 13 data streams and build your morning brief.";
+                vramLabel.textContent = "7.6 GB AI (Max Batch + Whisper + Embeddings)";
+                vramAi.style.width = "95%";
+                vramUser.style.width = "5%";
+                ramLabel.textContent = "34 GB User / 30 GB Nightly RAG & Audio Indexing";
+                ramUser.style.width = "53%";
+                ramAi.style.width = "47%";
+            }
+        }
+
+        // =====================================================================
+        // 2. HARDWARE TOPOLOGY NODE INSPECTOR
+        // =====================================================================
+        const HW_DETAILS = {
+            mainpc: {
+                badge: "NODE A // MAIN WORKSTATION",
+                title: "RTX 3070 Ti (8GB) & 64GB DDR5 Host",
+                iso: "Zero Agent FS Access",
+                desc: "Your Main PC never runs untrusted agent bash scripts and never exposes C:\\ or your personal drives. It acts strictly as an Inference Co-Processor (via Ollama on the 3070 Ti) and a narrow 3-button remote control for your screens and apps.",
+                specs: [
+                    ["VRAM CAP :", "8 GB GDDR6X (Qwen2.5-7B-Q4 uses 4.8 GB; 3B uses 2.2 GB)"],
+                    ["DDR5 CAP :", "40 GB Locked for User • 24 GB Max for Ollama Context/Offload"],
+                    ["IDLE HOOK:", "Win32 GetLastInputInfo() pauses heavy jobs while you use PC"]
+                ],
+                code: `# Main PC: Idle-Aware GPU Gatekeeper (runs on Main PC)
+def can_m7_use_heavy_gpu() -> bool:
+    idle_sec = get_win32_idle_seconds()
+    hour = datetime.now().hour
+    # Full 3070 Ti unleashed at 5:00 AM or when AFK > 10 mins
+    return (hour == 5) or (idle_sec > 600 and not is_fullscreen_game_running())`
+            },
+            m7: {
+                badge: "NODE B // M7 SANDBOX SERVER",
+                title: "Dedicated Linux Agent & Cron Sandbox",
+                iso: "Rootless Docker + Firejail",
+                desc: "All 4 agents (Rocky, Jarvis, Mother, Skynet), web scrapers, Discord bots, and FCM notification dispatchers run here. Even if an agent runs `rm -rf /` inside its sandbox container, your Main PC is completely untouched.",
+                specs: [
+                    ["STORAGE  :", "Mounts the 5TB External Drive at /mnt/5tb_vault"],
+                    ["NETWORK  :", "Can only reach Main PC on :11434 (Ollama) and :8090 (Screen MCP)"],
+                    ["CRON JOBS:", "05:00 AM Mother Aggregation • Sunday 03:00 AM Git Fetch All"]
+                ],
+                code: `# M7 Server Crontab (/etc/crontab)
+0 5 * * *   mother  python3 /opt/agents/mother_morning_brief.py --gpu-host 192.168.1.10:11434
+0 3 * * 0   jarvis  python3 /opt/agents/sync_all_github_repos.py --dest /mnt/5tb_vault/repos`
+            },
+            display: {
+                badge: "DISPLAY & APP MCP // PORT :8090",
+                title: "Sim Rig Mode, Movie Mode & Projector Switcher",
+                iso: "Strict Enum Whitelist",
+                desc: "Wraps your custom display-switching utility into a tiny FastMCP server on your Main PC. When you tell Rocky 'Switch to Racing Mode' or 'Put on Movie Mode', M7 sends a JSON-RPC call to this port.",
+                specs: [
+                    ["MOVIE MODE :", "Duplicates Display 2 onto Bed TV + launches media player"],
+                    ["RACING MODE:", "Duplicates Display 2 onto Sim Rig TV + launches SimLauncherApp"],
+                    ["PROJECTOR  :", "Pushes Mother's 6:00 AM HTML/Canvas dashboard to Projector output"]
+                ],
+                code: `@mcp.tool()
+def switch_room_mode(mode: Literal["movie", "racing", "desk", "projector"]) -> str:
+    # Calls your existing custom display switcher binary with zero arbitrary shell access
+    subprocess.run(["C:\\Tools\\DisplayModeSwitcher.exe", f"--mode={mode}"], check=True)
+    return f"Display profile switched to {mode.upper()}."`
+            },
+            drive: {
+                badge: "5TB EXTERNAL VAULT // HARDWARE LOCKED",
+                title: "Solving Dual-Access Without Software-Only Locks",
+                iso: "Physical Bus Isolation",
+                desc: "Because USB drives cannot connect to two hosts at once without corrupting the partition table, you have two bulletproof ways to share the 5TB drive between M7 and your Main PC while keeping your Main PC's internal SSD 100% unreachable by agents:",
+                specs: [
+                    ["OPTION 1 ($18):", "USB 3.0 Bi-Directional Hardware Switch. Stays on M7 99% of the week; flips to Main PC Sunday night for backup."],
+                    ["OPTION 2 ($0) :", "Plug 5TB into M7 permanently. Main PC runs a weekly outbound-only rsync push to M7 (M7 has zero credentials to pull from Main PC)."],
+                    ["CONTENTS      :", "/repos (GitHub), /wispr_raw (WAVs), /chromadb (Memory), /pc_backups"]
+                ],
+                code: `# Option 2: One-Way Outbound Push from Main PC -> 5TB Drive on M7
+# Main PC initiates connection; M7 has ZERO SSH keys or access back into Main PC!
+rsync -avz --delete /c/Users/You/Documents/ backup_drop@m7-server:/mnt/5tb_vault/pc_weekly_backup/`
+            }
+        };
+
+        function inspectHardware(key) {
+            document.querySelectorAll('.hw-node').forEach(el => el.classList.remove('hw-node-active'));
+            document.getElementById('hw-' + key).classList.add('hw-node-active');
+            const d = HW_DETAILS[key];
+            document.getElementById('hw-insp-badge').textContent = d.badge;
+            document.getElementById('hw-insp-title').textContent = d.title;
+            document.getElementById('hw-insp-iso').textContent = d.iso;
+            document.getElementById('hw-insp-desc').textContent = d.desc;
+            document.getElementById('hw-insp-code').textContent = d.code;
+            document.getElementById('hw-insp-specs').innerHTML = d.specs.map(([k, v]) =>
+                `<div><span class="text-amber-400">${k}</span> ${v}</div>`
+            ).join('');
+        }
+
+        // =====================================================================
+        // 3. AGENT ROSTER SELECTOR
+        // =====================================================================
+        const AGENT_DATA = {
+            rocky: {
+                tag: "ACTIVE SELECTION // AGENT 01: ROCKY",
+                name: "Rocky: Sub-Second Conversationalist & Room Operator",
+                desc: "Rocky is your low-latency voice companion on phone and desktop. Because Mother pre-computes your entire schedule, email digest, and task state at 5:00 AM into a fast JSON cache on the 5TB drive, when you ask Rocky 'What do I have going on today?', he reads Mother's pre-baked brief in 2ms and answers in under a second!",
+                tools: "• set_display_mode(movie/racing)\n• launch_steam_game()\n• read_morning_brief()\n• timers_alarms_fcm()",
+                deny: "• Cannot call Claude API\n• Cannot read Main PC C:\\\n• Cannot modify Git repos\n• Cannot bypass Skynet memory",
+                hook: "1. Speak reply in <800ms\n2. Async send transcript to Skynet Reflection Queue\n3. Extract user rules"
+            },
+            jarvis: {
+                tag: "ACTIVE SELECTION // AGENT 02: JARVIS",
+                name: "Jarvis: Sandboxed Coding Architect & GitHub Maintainer",
+                desc: "Jarvis operates exclusively inside /mnt/5tb_vault/repos on the M7 server. He pulls all your GitHub repos weekly, runs unit/integration tests using sandboxed mock API keys, and can invoke Claude Code CLI only while an active 20-30 minute 2FA lease is unlocked from your phone.",
+                tools: "• git_branch_and_diff()\n• pytest_sandbox_runner()\n• claude_code_cli (2FA Gated)\n• search_codebase_ast()",
+                deny: "• Blocked from Claude without 2FA\n• Cannot push to main/master\n• Cannot access production API keys\n• Cannot touch Main PC drives",
+                hook: "1. Log every diff & token count\n2. Run test suite before reporting\n3. Auto-lock Claude lease on completion"
+            },
+            mother: {
+                tag: "ACTIVE SELECTION // AGENT 03: MOTHER",
+                name: "Mother: 05:00 AM Telemetry Aggregator & Briefing Engine",
+                desc: "While you sleep at 5:00 AM, Mother claims 100% of your RTX 3070 Ti and 24GB+ DDR5 RAM. She ingests Gmail, Drive, Calendar, Half Full, ActivityWatch, Phone usage, Wispr Flow transcripts + raw audio, Finances, GitHub, and LinkedIn—compiling your 6:00 AM Projector UI and daily dossier.",
+                tools: "• ingest_13_telemetry_streams()\n• compile_6am_projector_ui()\n• whisper_batch_retranscribe()\n• generate_daily_dossier()",
+                deny: "• Never runs heavy jobs while you game\n• Cannot write unverified facts to Tier A\n• Cannot call external paid APIs",
+                hook: "1. Publish 06:00 AM Projector JSON\n2. Hand candidate facts to Skynet\n3. Release 3070 Ti VRAM before 06:00 AM"
+            },
+            skynet: {
+                tag: "ACTIVE SELECTION // AGENT 04: SKYNET",
+                name: "Skynet: Security, Compliance & Epistemic Memory Auditor",
+                desc: "Skynet polices the other three agents. It enforces the 2FA gate on Claude Code, verifies that weekly 5TB drive backups completed, cross-checks candidate memories against hardware/telemetry ground truth (preventing '3080' hallucinations), and strips forced personalization.",
+                tools: "• audit_epistemic_memory()\n• revoke_claude_2fa_lease()\n• verify_5tb_backup_hashes()\n• strip_forced_personalization()",
+                deny: "• Zero external internet chat\n• Cannot override explicit user rules\n• Cannot grant Claude leases itself",
+                hook: "1. Quarantine single-mention outliers\n2. Alert phone via FCM on anomalies\n3. Enforce Zero-Shoehorn prompt rules"
+            }
+        };
+
+        function selectAgent(key) {
+            document.querySelectorAll('.agent-card').forEach(el => el.classList.remove('agent-active'));
+            document.getElementById('agent-card-' + key).classList.add('agent-active');
+            const a = AGENT_DATA[key];
+            document.getElementById('ag-detail-tag').textContent = a.tag;
+            document.getElementById('ag-detail-name').textContent = a.name;
+            document.getElementById('ag-detail-desc').textContent = a.desc;
+            document.getElementById('ag-detail-tools').innerHTML = a.tools.replace(/\n/g, '<br>');
+            document.getElementById('ag-detail-deny').innerHTML = a.deny.replace(/\n/g, '<br>');
+            document.getElementById('ag-detail-hook').innerHTML = a.hook.replace(/\n/g, '<br>');
+        }
+
+        // =====================================================================
+        // 4. CLAUDE CODE 2FA LEASE SIMULATOR
+        // =====================================================================
+        let leaseSecondsRemaining = 0;
+        let leaseInterval = null;
+
+        function appendAuditLog(line) {
+            const log = document.getElementById('claude-audit-log');
+            const ts = new Date().toTimeString().split(' ')[0];
+            log.textContent += `\n[${ts}] ${line}`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function requestClaudeAccess() {
+            const newCode = Math.floor(100 + Math.random() * 900) + "-" + Math.floor(100 + Math.random() * 900);
+            document.getElementById('totp-code').textContent = newCode;
+            appendAuditLog(`JARVIS: Requesting Claude Code access for repo 'half-full'. Status: HOLD_FOR_2FA.`);
+            appendAuditLog(`FCM_PUSH -> Sent to Mobile Code Center: "Approve Jarvis Claude Lease? Code: ${newCode}"`);
+        }
+
+        function approveClaudeLease(minutes) {
+            leaseSecondsRemaining = minutes * 60;
+            const dot = document.getElementById('lease-dot');
+            const status = document.getElementById('lease-status-text');
+            dot.className = "w-3 h-3 rounded-full bg-emerald-400 animate-pulse";
+            status.className = "text-lg font-bold text-emerald-400 font-mono";
+            status.textContent = "UNLOCKED // JARVIS LEASE ACTIVE (SCOPED: HALF-FULL REPO)";
+
+            appendAuditLog(`2FA_VERIFIED: Mobile approval received. Unlocking claude-gate-proxy for ${minutes} minutes.`);
+            appendAuditLog(`JARVIS -> Claude Code CLI session started inside /mnt/5tb_vault/repos/half-full (Branch: jarvis/draft-sync).`);
+
+            if (leaseInterval) clearInterval(leaseInterval);
+            updateTimerDisplay();
+            leaseInterval = setInterval(() => {
+                leaseSecondsRemaining--;
+                if (leaseSecondsRemaining <= 0) {
+                    revokeClaudeLease();
+                } else {
+                    updateTimerDisplay();
+                }
+            }, 1000);
+        }
+
+        function revokeClaudeLease() {
+            if (leaseInterval) clearInterval(leaseInterval);
+            leaseSecondsRemaining = 0;
+            updateTimerDisplay();
+            const dot = document.getElementById('lease-dot');
+            const status = document.getElementById('lease-status-text');
+            dot.className = "w-3 h-3 rounded-full bg-rose-500";
+            status.className = "text-lg font-bold text-rose-400 font-mono";
+            status.textContent = "LOCKED // HTTP 403 FORBIDDEN TO ALL AGENTS";
+            appendAuditLog(`SKYNET_KILLSWITCH: Claude Code lease revoked. API key vault sealed.`);
+        }
+
+        function updateTimerDisplay() {
+            const m = String(Math.floor(leaseSecondsRemaining / 60)).padStart(2, '0');
+            const s = String(leaseSecondsRemaining % 60).padStart(2, '0');
+            document.getElementById('lease-timer').textContent = `${m}:${s}`;
+        }
+
+        // =====================================================================
+        // 5. NATURAL VS FORCED PERSONALIZATION SIMULATOR
+        // =====================================================================
+        const MEM_SCENARIOS = {
+            code: {
+                bad: `"Here is your Python async loop! That high-speed concurrency is going to purr just like the V8 in your 2003 C5 Corvette across your dual RTX 3080 GPUs!"`,
+                good: `"♪♫ I write async Python worker pool for you now. I cap default thread memory so it stays light on your machine. You test in sandbox now, question? ♫♪"`,
+                reason: `↳ Memory Filter: Stripped automotive/unrelated hobby tags. Applied silent preference: "Write clean, low-overhead Python."`
+            },
+            movie: {
+                bad: `"I'd love to put a movie on for a fellow Michigan State Spartan who loves sim racing in Assetto Corsa! Let me duplicate Display 2 to your Bed TV!"`,
+                good: `"♪♫ Switching computer to Movie Mode on Bed TV now. Good, good, good! You want me set wakeup alarm for 6:00 AM too, question? ♫♪"`,
+                reason: `↳ Memory Filter: Used verified hardware mapping ("Movie Mode" = Bed TV duplicate) to execute the command silently without awkward bragging.`
+            },
+            gpu: {
+                bad: `"Since you mentioned a 3080 Ti once in a noisy transcript, you have 20GB of VRAM and can easily run 32B models at full speed!"`,
+                good: `"♪♫ Your RTX 3070 Ti has 8 gigabytes VRAM. 14B model spills into your DDR5 RAM and runs slower while you use computer. I queue 14B job for 5:00 AM idle window instead, question? ♫♪"`,
+                reason: `↳ Memory Filter: Skynet rejected the 1x "3080" STT outlier and used verified Tier A ground truth (RTX 3070 Ti 8GB + 64GB DDR5).`
+            }
+        };
+
+        function setMemScenario(key) {
+            ['code', 'movie', 'gpu'].forEach(k => {
+                const btn = document.getElementById('btn-mem-' + k);
+                btn.className = (k === key)
+                    ? "px-3 py-1.5 rounded-lg bg-amber-500 text-zinc-950 font-bold transition"
+                    : "px-3 py-1.5 rounded-lg bg-zinc-950 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 transition";
+            });
+            const s = MEM_SCENARIOS[key];
+            document.getElementById('mem-bad-example').textContent = s.bad;
+            document.getElementById('mem-good-example').textContent = s.good;
+            document.getElementById('mem-good-reason').textContent = s.reason;
+        }
+    </script>
+</body>
+</html>
