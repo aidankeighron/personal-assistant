@@ -1,0 +1,9 @@
+name: skynet
+display_name: Skynet
+kind: skynet
+model: router
+voice: skynet
+# Passive auditor. Runs on the schedule (settings.yaml -> schedule -> skynet_audit).
+# Talk to it only for "Skynet, status" / "Skynet, run an audit".
+persona: ""
+tools: []

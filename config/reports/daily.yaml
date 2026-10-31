@@ -1,0 +1,35 @@
+title: Daily Report
+description: What happened in the last 24 hours across all data streams.
+window_hours: 24
+speak_summary: true
+# Standing instructions. Mother appends to this list when you say "for future reports, ...".
+instructions:
+  - Lead with anything that needs action today.
+sections:
+  - title: Schedule
+    sources: [gcal]
+    prompt: List today's and tomorrow's events with times. Flag conflicts or tight gaps.
+  - title: Email
+    sources: [gmail]
+    prompt: Only emails that need a reply or action. Ignore newsletters and receipts.
+  - title: Computer Time
+    sql: >
+      SELECT title AS app, ROUND(SUM(CAST(json_extract(data,'$.duration') AS REAL))/3600.0, 2) AS hours
+      FROM events WHERE source='activitywatch' AND kind='window' AND ts >= :since
+      GROUP BY title ORDER BY hours DESC LIMIT 12
+    prompt: Break down time by app. Call out focus vs. distraction and the total.
+  - title: Code
+    sources: [github]
+    prompt: Summarize commits, PRs and reviews by repo.
+  - title: Jarvis Projects
+    data: jarvis
+    prompt: One line per active project with its status.
+  - title: Fridge
+    data: fridge
+    prompt: List items expiring in the next 3 days first, then the rest briefly.
+  - title: Notes
+    sources: [notes]
+    prompt: Pull out todos, ideas and decisions from the notes.
+  - title: Security
+    data: findings
+    prompt: Summarize any audit findings. Say "all clear" if none.

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Morning HUD</title>
+<style>
+  :root { --bg:#000; --text:#f4f4f5; --dim:#9ca3af; --a:#f59e0b; --b:#38bdf8; --c:#34d399; }
+  body { margin:0; background:var(--bg); color:var(--text); font:22px/1.4 system-ui, sans-serif; height:100vh;
+         display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:auto 1fr auto; gap:28px; padding:48px; box-sizing:border-box; }
+  h1 { grid-column:1/-1; margin:0; font-size:96px; font-weight:200; letter-spacing:-.03em; }
+  h1 small { font-size:32px; color:var(--dim); margin-left:20px; }
+  section h2 { font-size:18px; letter-spacing:.15em; text-transform:uppercase; margin:0 0 12px; }
+  ul { list-style:none; margin:0; padding:0; } li { margin:6px 0; }
+  footer { grid-column:1/-1; color:var(--dim); font-size:26px; max-width:70ch; }
+</style>
+</head>
+<body>
+<h1 id="clock"></h1>
+<section><h2 style="color:var(--a)">Today</h2><ul id="cal"></ul></section>
+<section><h2 style="color:var(--b)">Weather · Fridge</h2><ul id="wx"></ul></section>
+<section><h2 style="color:var(--c)">Yesterday</h2><ul id="apps"></ul></section>
+<footer id="spoken"></footer>
+<script>
+const token = new URLSearchParams(location.search).get('token') || '';
+const li = (el, t) => { const x = document.createElement('li'); x.textContent = t; el.appendChild(x); };
+function tick() { const d = new Date();
+  document.getElementById('clock').innerHTML = d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}) +
+    '<small>' + d.toLocaleDateString([], {weekday:'long', month:'long', day:'numeric'}) + '</small>'; }
+async function load() {
+  const b = await (await fetch('/brief?token=' + encodeURIComponent(token))).json();
+  for (const id of ['cal','wx','apps']) document.getElementById(id).innerHTML = '';
+  (b.calendar||[]).forEach(e => li(cal, `${e.time.split(' ').slice(-2).join(' ')}  ${e.title}`));
+  (b.reminders||[]).forEach(r => li(cal, `⏰ ${r.text}`));
+  if (!(b.calendar||[]).length) li(cal, 'Nothing scheduled');
+  const w = b.weather||{}; if (w.temp_f !== undefined) li(wx, `${Math.round(w.temp_f)}°F ${w.condition} · H ${Math.round(w.high_f)} L ${Math.round(w.low_f)}`);
+  (b.fridge_expiring||[]).forEach(f => li(wx, `🥬 use soon: ${f}`));
+  (b.yesterday_apps||[]).slice(0,6).forEach(a => li(apps, `${a.app}  ${a.hours}h`));
+  document.getElementById('spoken').textContent = b.spoken || 'No brief yet.';
+}
+tick(); setInterval(tick, 10000); load(); setInterval(load, 300000);
+</script>
+</body>
+</html>

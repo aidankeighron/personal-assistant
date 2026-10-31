@@ -1,0 +1,93 @@
+# M7 server settings. Copy to config/settings.yaml (`python -m assistant init` does it).
+# ${VAR} values come from .env so secrets stay out of this file.
+
+data_dir: /mnt/vault/assistant        # on the 5TB drive. Use ./data while testing on a laptop.
+timezone: America/Detroit
+
+server:
+  host: 0.0.0.0
+  port: 8000
+  api_token: ${ASSISTANT_API_TOKEN}
+  # How the phone / PC reach M7. With Tailscale this is the M7 tailnet name.
+  # For phone mic + approvals over HTTPS use `tailscale serve` and put the https URL here.
+  public_url: ${ASSISTANT_PUBLIC_URL:-http://m7:8000}
+
+pc:
+  ollama_url: http://${PC_HOST:-desktop}:11434
+  host_agent_url: http://${PC_HOST:-desktop}:8090
+  host_agent_token: ${PC_HOST_TOKEN}
+  keep_alive: 2m                      # model leaves VRAM 2 min after last use
+  mac_address: ${PC_MAC:-}            # for Wake-on-LAN before the nightly run
+  broadcast: 255.255.255.255
+
+# Model aliases used by agents. Measure on your 3070 Ti with prototypes/rocky_harness.py
+# and change these. 8 GB VRAM: stay at <= ~8B params at Q4 for anything interactive.
+models:
+  fast: qwen2.5:7b                    # Rocky
+  router: qwen2.5:3b                  # Jarvis intent + status summaries
+  heavy: qwen2.5:7b                   # Mother / nightly (runs when you're AFK)
+
+gpu_gate:
+  idle_seconds: 600                   # background GPU work only after 10 min AFK...
+  night_window: "04:30-06:30"         # ...or inside this window
+  wake_pc_for_nightly: true
+  nightly_max_wait: 5400
+
+notify:
+  backend: ntfy
+  ntfy_url: ${NTFY_URL:-https://ntfy.sh}
+  topic: ${NTFY_TOPIC}
+  token: ${NTFY_TOKEN:-}
+
+weather:
+  default_city: East Lansing
+
+sandbox:
+  runner: docker                      # docker | local
+  container: pa-sandbox
+  timeout_seconds: 120
+
+jarvis:
+  projects_dir: /mnt/vault/projects
+  runner: docker                      # docker (recommended) | local
+  docker_image: pa-sandbox:latest
+  claude_home: /mnt/vault/assistant/claude-home   # holds Claude Code login for the container
+  pass_env: [ANTHROPIC_API_KEY]       # leave the env var unset to use your Claude subscription login
+  approval_required: true             # phone approval before Claude Code starts
+  lease_minutes: 20
+  max_run_minutes: 90
+  continue_sessions: true             # resume the project's previous Claude session
+  branch_prefix: jarvis/draft-
+  container_memory: 3g
+  container_cpus: 2
+  claude_args: [--output-format, stream-json, --verbose, --dangerously-skip-permissions]
+
+groceries:
+  ask_on: leave                       # ask "what did you buy" when you leave a store
+  store_keywords: [kroger, meijer, aldi, costco, target, walmart, trader joe, whole foods, grocery]
+
+collectors:
+  enabled: [activitywatch, inbox, notes]   # add: gmail, gcal, drive, github
+  github:
+    username: aidankeighron
+    token: ${GITHUB_TOKEN:-}
+  gmail: {days: 2, max: 100}
+  gcal: {calendars: [primary], days_ahead: 7}
+  notes:
+    dirs: []                          # extra folders of .md/.txt (e.g. synced Obsidian vault)
+
+nightly_reports: [daily]
+
+schedule:
+  - {name: collect, every: 30m, task: collect}
+  - {name: nightly, daily: "05:00", task: nightly}
+  - {name: skynet_audit, every: 60m, task: skynet_audit}
+  - {name: perishables, daily: "17:30", task: perishables_reminder}
+  - {name: jarvis_status, every: 2m, task: jarvis_status}
+  - {name: weekly_report, weekly: "sun 19:00", task: report, args: {name: weekly}}
+
+backup:
+  # rsync destination for nightly DB snapshots. Something NOT on the vault drive,
+  # e.g. a share on the PC: backup@desktop:/d/assistant-backups  (empty = local only)
+  target: ""
+  keep: 14

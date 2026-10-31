@@ -1,0 +1,89 @@
+# Windows PC config. Copy to pc/config.yaml (install.ps1 does it) and edit.
+
+host_agent:
+  bind: 0.0.0.0           # Windows Firewall rule (install.ps1) limits this to M7's IP
+  port: 8090
+  token: change-me        # must equal PC_HOST_TOKEN in M7's .env
+
+server:                   # how this PC reaches M7
+  url: http://m7:8000
+  api_token: change-me    # = ASSISTANT_API_TOKEN in M7's .env
+
+activitywatch_url: http://localhost:5600
+
+# Windows treats these fullscreen windows as "not busy" for the GPU gate
+fullscreen_ignore: [Program Manager]
+
+# Display profiles. Each step is an argv list, {uri: ...}, or {sleep: seconds}.
+# Replace with your own display-switcher tool. Built-in options:
+#   DisplaySwitch.exe /internal | /clone | /extend | /external
+#   MultiMonitorTool (NirSoft): /enable, /disable, /SetPrimary, /LoadConfig profile.cfg
+#   nircmd setdefaultsounddevice "Speakers"   (audio routing)
+display_modes:
+  desk:
+    steps:
+      - [DisplaySwitch.exe, /extend]
+  movie:
+    aliases: [bed, bed tv, movie mode]
+    steps:
+      - [DisplaySwitch.exe, /clone]
+      # - [C:\Tools\MultiMonitorTool\MultiMonitorTool.exe, /LoadConfig, C:\Tools\profiles\movie.cfg]
+      # - [C:\Tools\nircmd\nircmd.exe, setdefaultsounddevice, "TV"]
+  racing:
+    aliases: [sim, sim rig, racing mode]
+    steps:
+      - [DisplaySwitch.exe, /extend]
+      # - [C:\Tools\MultiMonitorTool\MultiMonitorTool.exe, /LoadConfig, C:\Tools\profiles\racing.cfg]
+  projector:
+    steps:
+      - [DisplaySwitch.exe, /extend]
+
+# Whitelisted apps. `uri` (steam://...) or `cmd` (argv). `process` lets /close work.
+apps:
+  assetto corsa:
+    uri: steam://rungameid/244210
+    aliases: [assetto, ac]
+  factorio:
+    uri: steam://rungameid/427520
+  steam:
+    cmd: [C:\Program Files (x86)\Steam\steam.exe]
+    process: steam.exe
+  spotify:
+    cmd: [explorer.exe, spotify:]
+    process: Spotify.exe
+  vs code:
+    cmd: [C:\Users\YOU\AppData\Local\Programs\Microsoft VS Code\Code.exe]
+    process: Code.exe
+    aliases: [vscode, code]
+  discord:
+    cmd: [C:\Users\YOU\AppData\Local\Discord\Update.exe, --processStart, Discord.exe]
+    process: Discord.exe
+
+projector:
+  display_mode: projector
+  # Separate Edge profile so it runs as its own window we can close. Set the x position
+  # to where the projector sits in your display layout (e.g. 3840 if it's right of a 4K screen).
+  browser_cmd: ["C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe", "--kiosk", "{url}",
+                "--edge-kiosk-type=fullscreen", "--window-position=3840,0",
+                "--user-data-dir=C:\\ProgramData\\assistant-projector", "--no-first-run"]
+
+voice:
+  mode: wake              # wake | ptt
+  whisper_model: small.en # tiny.en / base.en are faster; small.en is accurate and fine on an i9
+  cpu_threads: 6
+  energy_threshold: 0.012 # raise if it triggers on background noise
+  silence_ms: 800
+  follow_up_seconds: 8
+  input_device: null      # null = default mic; or a name/index from `python -m sounddevice`
+  conversation: desktop-voice
+
+tts:
+  backend: piper          # piper | sapi
+  # Download voices from https://huggingface.co/rhasspy/piper-voices into pc/voices/
+  # (each needs the .onnx AND .onnx.json). Pick any that fit the character.
+  voices:
+    rocky:   {model: voices/en_US-ryan-high.onnx, length_scale: 0.9, chord: true}
+    jarvis:  {model: voices/en_GB-alan-medium.onnx, length_scale: 1.0}
+    mother:  {model: voices/en_US-amy-medium.onnx, length_scale: 1.1}
+    skynet:  {model: voices/en_US-joe-medium.onnx, length_scale: 1.15, chord: true}
+    default: {sapi_rate: 185}

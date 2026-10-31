@@ -1,0 +1,28 @@
+title: Weekly Review
+description: Trends over the past week.
+window_hours: 168
+speak_summary: true
+instructions: []
+sections:
+  - title: Time by App
+    sql: >
+      SELECT title AS app, ROUND(SUM(CAST(json_extract(data,'$.duration') AS REAL))/3600.0, 1) AS hours
+      FROM events WHERE source='activitywatch' AND kind='window' AND ts >= :since
+      GROUP BY title ORDER BY hours DESC LIMIT 15
+    prompt: Weekly totals by app and what stands out.
+  - title: Time by Day
+    sql: >
+      SELECT date(ts,'unixepoch','localtime') AS day,
+             ROUND(SUM(CAST(json_extract(data,'$.duration') AS REAL))/3600.0, 1) AS hours
+      FROM events WHERE source='activitywatch' AND kind='window' AND ts >= :since
+      GROUP BY day ORDER BY day
+    prompt: Screen time per day; note the trend.
+  - title: Code Shipped
+    sources: [github]
+    prompt: What got built this week, by repo.
+  - title: Places
+    sources: [location]
+    prompt: Where the user went (stores, gym, work) and how often.
+  - title: Money
+    sources: [finance]
+    prompt: Spending by category and anything unusual. Skip if no data.

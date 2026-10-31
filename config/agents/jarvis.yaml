@@ -1,0 +1,9 @@
+name: jarvis
+display_name: Jarvis
+kind: jarvis
+model: router           # small model: only classifies requests + writes status lines
+voice: jarvis
+# Jarvis doesn't free-chat. It manages Claude Code runs (see jarvis_runner.py) and reads
+# back pre-made answers filled with project state. Behaviour knobs live in settings.yaml -> jarvis.
+persona: ""
+tools: []

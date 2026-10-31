@@ -1,0 +1,22 @@
+[Unit]
+Description=Personal assistant (Rocky / Jarvis / Mother / Skynet)
+After=network-online.target docker.service tailscaled.service
+Wants=network-online.target
+RequiresMountsFor=/mnt/vault
+
+[Service]
+Type=simple
+User=assistant
+Group=assistant
+WorkingDirectory=/opt/assistant
+EnvironmentFile=-/opt/assistant/.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/assistant/.venv/bin/python -m assistant serve
+Restart=always
+RestartSec=5
+# Keep it polite on a small box
+Nice=5
+MemoryMax=1500M
+
+[Install]
+WantedBy=multi-user.target

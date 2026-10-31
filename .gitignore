@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+config/settings.yaml
+pc/config.yaml
+data/
+*.db
+*.db-wal
+*.db-shm
+token.json
+client_secret*.json
+.pytest_cache/
+*.egg-info/
+pc/voices/

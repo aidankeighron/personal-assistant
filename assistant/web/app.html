@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0b0d">
+<link rel="manifest" href="/manifest.webmanifest">
+<title>Assistant</title>
+<style>
+  :root { --bg:#0b0b0d; --panel:#16161a; --line:#26262c; --text:#ececf1; --dim:#8b8b96;
+          --rocky:#f59e0b; --jarvis:#38bdf8; --mother:#34d399; --skynet:#f87171; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.45 system-ui, sans-serif;
+         height:100dvh; display:flex; flex-direction:column; }
+  header { display:flex; gap:8px; padding:10px 12px; border-bottom:1px solid var(--line); align-items:center; }
+  header b { flex:1; }
+  .pill { font-size:12px; color:var(--dim); }
+  #log { flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:10px; }
+  .msg { max-width:88%; padding:9px 12px; border-radius:14px; background:var(--panel); white-space:pre-wrap;
+         word-wrap:break-word; }
+  .me { align-self:flex-end; background:#2a2a33; }
+  .who { font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; margin-bottom:2px; }
+  .sys { align-self:center; color:var(--dim); font-size:12px; background:none; }
+  .agents { display:flex; gap:6px; padding:8px 12px 0; overflow-x:auto; }
+  .agents button { border:1px solid var(--line); background:var(--panel); color:var(--text); border-radius:999px;
+                   padding:6px 12px; font-size:13px; }
+  .agents button.on { border-color:currentColor; }
+  form { display:flex; gap:8px; padding:10px 12px calc(10px + env(safe-area-inset-bottom)); }
+  input { flex:1; min-width:0; background:var(--panel); border:1px solid var(--line); color:var(--text);
+          border-radius:12px; padding:11px 12px; font-size:16px; }
+  form button { border:0; border-radius:12px; padding:0 14px; font-size:18px; background:var(--panel); color:var(--text); }
+  #mic.live { background:var(--skynet); }
+</style>
+</head>
+<body>
+<header><b>Assistant</b><span class="pill" id="pc">…</span><button id="speakToggle" class="pill" style="background:none;border:0">🔊</button></header>
+<div class="agents" id="agents"></div>
+<div id="log"></div>
+<form id="f">
+  <button type="button" id="mic" title="Hold to talk">🎙️</button>
+  <input id="t" autocomplete="off" placeholder="Hey Rocky…">
+  <button>➤</button>
+</form>
+<script>
+const COLORS = {rocky:'var(--rocky)', jarvis:'var(--jarvis)', mother:'var(--mother)', skynet:'var(--skynet)'};
+const VOICE = {rocky:{pitch:1.4,rate:1.1}, jarvis:{pitch:0.9,rate:1.0}, mother:{pitch:0.8,rate:0.92}, skynet:{pitch:0.5,rate:0.9}};
+let token = '';
+try { token = localStorage.getItem('pa_token') || ''; } catch (e) {}
+if (new URLSearchParams(location.search).get('token')) token = new URLSearchParams(location.search).get('token');
+if (!token) { token = prompt('API token (server.api_token):') || ''; }
+try { localStorage.setItem('pa_token', token); } catch (e) {}
+let speakOn = true, target = null;
+const conv = 'web-' + (navigator.userAgent.includes('Mobile') ? 'phone' : 'desktop');
+const $ = s => document.querySelector(s), log = $('#log');
+
+function add(text, cls, agent) {
+  const d = document.createElement('div'); d.className = 'msg ' + (cls||'');
+  if (agent) { const w = document.createElement('div'); w.className='who'; w.textContent=agent;
+               w.style.color = COLORS[agent]||'var(--dim)'; d.appendChild(w); }
+  d.appendChild(document.createTextNode(text)); log.appendChild(d); log.scrollTop = log.scrollHeight; return d;
+}
+function speak(text, agent) {
+  if (!speakOn || !text || !window.speechSynthesis) return;
+  const u = new SpeechSynthesisUtterance(text.replace(/[♪♫*#`]/g,'')); Object.assign(u, VOICE[agent]||{});
+  speechSynthesis.speak(u);
+}
+async function send(text) {
+  if (!text.trim()) return;
+  add(text, 'me');
+  const r = await fetch('/chat', {method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+    body: JSON.stringify({text, conversation: conv, agent: target, source: 'web', stream: true})});
+  if (r.status === 401) { try { localStorage.removeItem('pa_token'); } catch(e){} add('Bad token — reload.', 'sys'); return; }
+  const reader = r.body.getReader(), dec = new TextDecoder(); let buf = '';
+  while (true) {
+    const {value, done} = await reader.read(); if (done) break;
+    buf += dec.decode(value, {stream:true}); let i;
+    while ((i = buf.indexOf('\n')) >= 0) {
+      const line = buf.slice(0, i); buf = buf.slice(i+1); if (!line.trim()) continue;
+      const ev = JSON.parse(line);
+      if (ev.type === 'filler') { add(ev.text, 'sys'); speak(ev.text, ev.agent); }
+      else if (ev.type === 'tool') add('… ' + ev.tool, 'sys');
+      else if (ev.type === 'reply') { add(ev.text, '', ev.agent); speak(ev.speak, ev.agent); }
+      else if (ev.type === 'error') add('Error: ' + ev.error, 'sys');
+    }
+  }
+}
+$('#f').onsubmit = e => { e.preventDefault(); const v = $('#t').value; $('#t').value=''; send(v); };
+$('#speakToggle').onclick = () => { speakOn = !speakOn; $('#speakToggle').textContent = speakOn ? '🔊' : '🔇'; };
+['auto','rocky','jarvis','mother','skynet'].forEach(a => {
+  const b = document.createElement('button'); b.textContent = a; b.style.color = COLORS[a]||'var(--text)';
+  if (a==='auto') b.classList.add('on');
+  b.onclick = () => { target = a==='auto'?null:a; document.querySelectorAll('.agents button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); };
+  $('#agents').appendChild(b);
+});
+// Voice input: Web Speech API (Chrome/Edge/Android/iOS Safari). Needs HTTPS (use `tailscale serve`).
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (SR) {
+  const rec = new SR(); rec.lang = 'en-US'; rec.interimResults = false;
+  rec.onresult = e => send(e.results[0][0].transcript);
+  rec.onend = () => $('#mic').classList.remove('live');
+  $('#mic').onclick = () => { $('#mic').classList.add('live'); rec.start(); };
+} else { $('#mic').onclick = () => add('Voice input needs Chrome/Safari over HTTPS.', 'sys'); }
+fetch('/status', {headers:{'Authorization':'Bearer '+token}}).then(r=>r.json()).then(s => {
+  $('#pc').textContent = 'PC ' + (String(s.pc_llm).startsWith('online') ? 'online' : 'offline');
+}).catch(()=>{ $('#pc').textContent = 'server ?'; });
+</script>
+</body>
+</html>
