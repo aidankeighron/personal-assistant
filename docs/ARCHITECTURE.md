@@ -74,6 +74,16 @@ is kept in `reports/history/`.
 - Claude Code only starts after a phone approval (lease, default 20 min). Jarvis commits to
   `jarvis/draft-*`; merging to main is yours.
 
+## Models (automatic)
+
+`assistant/models.py`: the required set is `settings.models` + each agent's `model:` +
+`settings.extra_models`. The `ensure_models` schedule task (`run_at_start`, then every 6 h)
+compares that with the PC's `GET /api/tags` and streams `POST /api/pull` for anything missing,
+deferring while a fullscreen app runs. Results go to `kv['models:status']`, `GET /models`, a push
+notification, and Skynet raises a finding if models stay missing. On the PC, `pc/download_models.py`
+fetches Piper voices (from config), the Whisper model and (on first install) the Ollama list from
+`GET /models`. Everything is idempotent.
+
 ## Ports
 
 | Port | Where | What |

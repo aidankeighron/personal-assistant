@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, Awaitable, Callable
 
 import httpx
 
@@ -72,3 +72,30 @@ class OllamaClient:
                 return [m["name"] for m in r.json().get("models", [])]
         except httpx.HTTPError as e:
             raise LLMUnavailable(str(e)) from e
+
+    async def pull(self, model: str, on_progress: Callable[[dict], Awaitable[None] | None] | None = None) -> None:
+        """Download a model onto the PC (POST /api/pull, streamed). Raises on failure."""
+        timeout = httpx.Timeout(30.0, read=600.0)  # big layers can stall for a while
+        try:
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                async with client.stream("POST", f"{self.base_url}/api/pull",
+                                         json={"model": model, "stream": True}) as r:
+                    if r.status_code >= 400:
+                        body = (await r.aread()).decode(errors="replace")[:300]
+                        raise RuntimeError(f"pull {model}: HTTP {r.status_code} {body}")
+                    last = {}
+                    async for line in r.aiter_lines():
+                        if not line.strip():
+                            continue
+                        ev = json.loads(line)
+                        if ev.get("error"):
+                            raise RuntimeError(f"pull {model}: {ev['error']}")
+                        last = ev
+                        if on_progress:
+                            res = on_progress(ev)
+                            if hasattr(res, "__await__"):
+                                await res
+                    if last.get("status") != "success":
+                        raise RuntimeError(f"pull {model}: stream ended without success ({last})")
+        except (httpx.ConnectError, httpx.ConnectTimeout) as e:
+            raise LLMUnavailable(f"Ollama unreachable at {self.base_url}: {e}") from e

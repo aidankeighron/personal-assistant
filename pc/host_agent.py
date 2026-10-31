@@ -142,6 +142,8 @@ def run_steps(steps: list) -> list[dict]:
 
 def find(entries: dict, name: str) -> tuple[str, Any] | None:
     key = name.lower().strip()
+    if not key:
+        return None
     for k, v in entries.items():
         aliases = [k.lower()] + [a.lower() for a in (v.get("aliases", []) if isinstance(v, dict) else [])]
         if key in aliases:

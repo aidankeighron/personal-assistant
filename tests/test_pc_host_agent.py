@@ -36,4 +36,5 @@ def test_host_agent_whitelist(agent):
     assert agent.post("/display", json={"mode": "nuke"}, headers=h).status_code == 404
     assert agent.post("/launch", json={"app": "Factorio"}, headers=h).json() == {"launched": "factorio"}
     assert agent.post("/launch", json={"app": "cmd.exe"}, headers=h).status_code == 404
+    assert agent.post("/launch", json={"app": "  "}, headers=h).status_code == 404
     assert agent.get("/apps", headers=h).json() == {"apps": ["factorio"], "display_modes": ["movie"]}

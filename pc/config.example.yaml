@@ -11,6 +11,10 @@ server:                   # how this PC reaches M7
 
 activitywatch_url: http://localhost:5600
 
+# download_models.py asks M7 which Ollama models the agents use (GET /models).
+# This list is only the fallback when M7 isn't reachable yet (first install).
+ollama_models: [qwen2.5:7b, qwen2.5:3b]
+
 # Windows treats these fullscreen windows as "not busy" for the GPU gate
 fullscreen_ignore: [Program Manager]
 

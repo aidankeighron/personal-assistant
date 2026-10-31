@@ -88,7 +88,9 @@ DEFAULTS: dict[str, Any] = {
         {"name": "skynet_audit", "every": "60m", "task": "skynet_audit"},
         {"name": "perishables", "daily": "18:00", "task": "perishables_reminder"},
         {"name": "jarvis_status", "every": "2m", "task": "jarvis_status"},
+        {"name": "ensure_models", "every": "6h", "task": "ensure_models", "run_at_start": True},
     ],
+    "extra_models": [],
     "backup": {"target": "", "keep": 14},
 }
 

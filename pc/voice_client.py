@@ -158,6 +158,12 @@ def main() -> None:
     a = ap.parse_args()
     cfg = load_cfg()
     vcfg = cfg.get("voice", {})
+    if not a.mute and cfg.get("tts", {}).get("backend", "piper") == "piper":
+        try:  # new voice added to config.yaml? fetch it now instead of falling back to SAPI
+            from download_models import ensure_voices
+            ensure_voices(cfg, quiet=True)
+        except Exception as e:
+            print(f"  (voice download skipped: {e})")
     client = Client(cfg)
 
     if a.text:

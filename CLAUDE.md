@@ -11,8 +11,9 @@ Claude Code on this repo to extend the assistant itself, so keep this file accur
   - `jarvis_runner.py`: Claude Code runs, approvals, status summaries
   - `tasks.py`: nightly pipeline, reminders, location, backup. `scheduler.py`: in-process schedule
   - `reports.py`: YAML-spec reports. `memory.py`: tiered facts. `db.py`: schema
+  - `models.py`: which Ollama models are required; auto-pulls missing ones onto the PC
   - `web/`: phone/desktop app + projector HUD (single-file HTML, no build step)
-- `pc/`: Windows-only scripts (host agent whitelist, voice client, TTS, installer). Standalone: must not import `assistant`.
+- `pc/`: Windows-only scripts (host agent whitelist, voice client, TTS, `download_models.py`, installer). Standalone: must not import `assistant`.
 - `config/`: settings example, agent YAMLs, default report specs.
 - `deploy/m7/`, `sandbox/`: server install, systemd, Docker.
 - `docs/`: SETUP.md (walkthrough), ARCHITECTURE.md. `docs/design/`: original design notes.
@@ -21,7 +22,7 @@ Claude Code on this repo to extend the assistant itself, so keep this file accur
 ## Commands
 ```bash
 python -m venv .venv && .venv/bin/pip install -e ".[dev]"
-.venv/bin/python -m pytest -q          # tests use a fake LLM + fake PC host; no network needed
+.venv/bin/python -m pytest -q          # fake LLM/PC + tests/fake_ollama.py (real HTTP); no network needed
 .venv/bin/python -m assistant chat     # needs config/settings.yaml (python -m assistant init)
 ```
 

@@ -11,6 +11,9 @@ stores all memory on the 5TB vault, collects data overnight, and is the agents' 
 | **Mother** | Data + reports | SQL over everything collected; nightly morning brief; reports you can reshape by asking |
 | **Skynet** | Background audit | Leases, backups, disk, collector health, secret scanning, memory sanity (e.g. "you don't have a 3080") |
 
+Models download themselves: M7 pulls whatever Ollama models the agents are configured for onto
+the PC, and `pc/download_models.py` fetches the voices and Whisper.
+
 **Start here → [docs/SETUP.md](docs/SETUP.md)** (step-by-step for the PC, M7 and phone).
 How it fits together → [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 

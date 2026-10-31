@@ -17,18 +17,23 @@ MAX_OUT = 6000
 async def run_in_sandbox(settings, command: str, timeout: int | None = None, workdir: str = "/work") -> dict:
     cfg = settings["sandbox"]
     timeout = timeout or int(cfg.get("timeout_seconds", 120))
+    # `timeout` runs *inside* the container so a runaway command is really killed,
+    # not just the docker client.
+    inner = ["timeout", "-k", "5", str(timeout), "bash", "-lc", command]
     if cfg.get("runner", "docker") == "docker":
-        argv = ["docker", "exec", "-w", workdir, cfg.get("container", "pa-sandbox"), "bash", "-lc", command]
+        argv = ["docker", "exec", "-w", workdir, cfg.get("container", "pa-sandbox"), *inner]
     else:
-        argv = ["bash", "-lc", command]
+        argv = inner
     proc = await asyncio.create_subprocess_exec(
         *argv, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT)
     try:
-        out, _ = await asyncio.wait_for(proc.communicate(), timeout=timeout)
+        out, _ = await asyncio.wait_for(proc.communicate(), timeout=timeout + 15)
     except asyncio.TimeoutError:
         proc.kill()
         return {"exit_code": None, "output": f"timed out after {timeout}s"}
     text = out.decode(errors="replace")
+    if proc.returncode in (124, 137):
+        return {"exit_code": None, "output": f"timed out after {timeout}s\n" + text[-2000:]}
     if len(text) > MAX_OUT:
         text = text[:2000] + f"\n...[{len(text) - 4000} chars cut]...\n" + text[-2000:]
     return {"exit_code": proc.returncode, "output": text}

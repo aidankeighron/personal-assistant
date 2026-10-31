@@ -103,3 +103,33 @@ async def test_jarvis_works_without_llm(rt):
     jr.create_project(rt, "half-full")
     res = await Orchestrator(rt).handle("Jarvis, list all the projects", "j2")
     assert "half full" in res["text"]
+
+
+def test_parse_real_claude_stream_shapes():
+    """Event shapes captured from a real `claude -p --output-format stream-json --verbose` run."""
+    lines = [
+        {"type": "active_goal", "value": None, "uuid": "u1", "session_id": "S"},
+        {"type": "system", "subtype": "init", "cwd": "/work", "session_id": "S", "tools": ["Bash"]},
+        {"type": "system", "subtype": "status", "session_id": "S"},
+        {"type": "stream_event", "event": {"type": "content_block_delta"}, "session_id": "S"},
+        {"type": "assistant", "message": {"content": [{"type": "text", "text": "ok"}]}, "session_id": "S"},
+        {"type": "rate_limit_event", "session_id": "S"},
+        {"type": "system", "subtype": "post_turn_summary", "session_id": "S"},
+        {"type": "result", "subtype": "success", "is_error": False, "result": "ok",
+         "session_id": "S", "total_cost_usd": 0.0074},
+    ]
+    parsed = [jr.parse_stream_line(json.dumps(x)) for x in lines]
+    assert all(p["session_id"] == "S" for p in parsed)
+    assert parsed[4]["texts"] == ["ok"]
+    assert not any("texts" in p or "actions" in p for i, p in enumerate(parsed) if i != 4)
+    assert parsed[-1] == {"session_id": "S", "result": "ok", "is_error": False, "cost_usd": 0.0074}
+
+
+def test_docker_command_shape(rt):
+    rt.settings.raw["jarvis"]["runner"] = "docker"
+    cmd = jr.build_command(rt, rt.settings.projects_dir / "x", "do it", "sess-1", 5)
+    assert cmd[:5] == ["docker", "run", "--rm", "-i", "--init"]
+    assert "--user" in cmd and "HOME=/home/agent" in cmd and "GIT_CONFIG_VALUE_0=*" in cmd
+    i = cmd.index("pa-sandbox:latest")
+    assert cmd[i + 1:i + 4] == ["claude", "-p", "do it"]
+    assert cmd[-2:] == ["--resume", "sess-1"]

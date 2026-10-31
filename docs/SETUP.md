@@ -31,11 +31,24 @@ cd C:\assistant\pc
 Set-ExecutionPolicy -Scope Process Bypass
 .\install.ps1 -M7Ip <M7 tailscale IP>     # e.g. 100.101.102.103 (from `tailscale ip -4` on M7)
 ```
-This creates a venv, installs the Python deps, configures Ollama to unload models after
-2 minutes idle and keep one model loaded at a time, adds firewall rules (M7 only), downloads
-four Piper voices, and registers the host agent and voice client to start at logon.
+This creates a venv, installs the Python deps, configures and restarts Ollama (models unload
+after 2 minutes idle, one model loaded at a time), adds firewall rules (M7 only), **downloads
+every model automatically** (`pc\download_models.py`: the Piper voices in `config.yaml`, the
+Whisper model, and the Ollama models), and registers three logon/weekly tasks: host agent,
+voice client, and a weekly model re-check.
 
-**Restart Ollama** from the system tray so it picks up the new settings.
+### Model downloads are automatic
+
+| What | Where it runs | When |
+|---|---|---|
+| Ollama models the agents use (`models:` + agent YAMLs + `extra_models:` in M7's settings) | M7 pulls them onto the PC over Ollama's API | at M7 startup and every 6 h; skipped while a fullscreen game runs |
+| Ollama models (first install, before M7 exists) | `download_models.py` on the PC (list from M7's `GET /models`, else `ollama_models:` in `pc\config.yaml`) | install + Sunday 4 AM |
+| Piper voices listed in `pc\config.yaml` -> `tts.voices` | `download_models.py`, and `voice_client.py` at startup | install, startup, weekly |
+| Whisper (`voice.whisper_model`) | `download_models.py` (faster-whisper cache) | install, weekly |
+
+So to switch models you only edit config: change `models.fast` on M7 (or add a voice to
+`pc\config.yaml`) and it's fetched automatically. Manual triggers if you're impatient:
+`python -m assistant models --pull` on M7, or `.\.venv\Scripts\python.exe download_models.py` on the PC.
 
 ### PC-3. Measure your models (important)
 ```powershell
@@ -131,6 +144,7 @@ The login is saved to `/mnt/vault/assistant/claude-home` and reused by every Jar
 ```bash
 sudo systemctl restart assistant
 sudo -u assistant /opt/assistant/.venv/bin/python -m assistant doctor
+sudo -u assistant /opt/assistant/.venv/bin/python -m assistant models     # which models, which are missing
 sudo -u assistant /opt/assistant/.venv/bin/python -m assistant chat
 journalctl -u assistant -f            # logs
 ```

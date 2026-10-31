@@ -194,7 +194,7 @@ def build_command(rt, proj_path: Path, prompt: str, session_id: str | None, run_
         return claude
     claude_home = Path(jc.get("claude_home") or rt.settings.data_dir / "claude-home")
     claude_home.mkdir(parents=True, exist_ok=True)
-    cmd = ["docker", "run", "--rm", "-i", "--name", f"jarvis-run-{run_id}",
+    cmd = ["docker", "run", "--rm", "-i", "--init", "--name", f"jarvis-run-{run_id}",
            "--user", f"{os.getuid()}:{os.getgid()}", "-e", "HOME=/home/agent", *GIT_ENV,
            "-v", f"{proj_path}:/work", "-v", f"{claude_home}:/home/agent", "-w", "/work",
            "--memory", jc.get("container_memory", "3g"), "--cpus", str(jc.get("container_cpus", 2))]
@@ -380,6 +380,13 @@ async def cancel(rt, project: str) -> dict:
 
 
 def mark_orphans(rt) -> None:
-    """On startup: runs that were 'running' when the server died can't be resumed by pid."""
+    """On startup: runs that were 'running' when the server died can't be resumed by pid.
+    Their containers would keep going unsupervised, so stop them."""
+    if rt.settings["jarvis"].get("runner", "docker") == "docker":
+        for r in rt.db.query("SELECT id FROM runs WHERE status IN ('running','starting')"):
+            try:
+                subprocess.run(["docker", "rm", "-f", f"jarvis-run-{r['id']}"], capture_output=True, timeout=30)
+            except (OSError, subprocess.SubprocessError):
+                pass
     rt.db.execute("UPDATE runs SET status='interrupted', finished=? WHERE status IN ('running','starting')",
                   (time.time(),))

@@ -106,3 +106,5 @@ def test_api(rt):
         assert "agents" in c.get("/status", headers=h).json()
         # unknown approval token is harmless
         assert c.post("/approvals/nope/approve").json() == {"error": "unknown approval"}
+        assert c.get("/approvals/nope/approve").status_code == 405  # link previews can't approve
+        assert "required" in c.get("/models", headers=h).json()

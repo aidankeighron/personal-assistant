@@ -6,6 +6,7 @@ services:
     build: ../../sandbox
     container_name: pa-sandbox
     restart: unless-stopped
+    init: true          # reaps killed/timed-out processes (no zombies)
     user: "${PA_UID:-1000}:${PA_GID:-1000}"   # same uid as the `assistant` service user
     environment:
       HOME: /home/agent

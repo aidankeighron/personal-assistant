@@ -16,7 +16,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
-from . import jarvis_runner, tasks
+from . import jarvis_runner, models, tasks
 from .collectors.files import ingest_rows
 from .host import HostUnavailable
 from .llm import LLMUnavailable
@@ -84,8 +84,7 @@ def create_app(rt: Runtime | None = None, start_scheduler: bool = True) -> FastA
         return JSONResponse({"name": "Assistant", "short_name": "Rocky", "start_url": "/app",
                              "display": "standalone", "background_color": "#0b0b0d", "theme_color": "#0b0b0d"})
 
-    @app.post("/approvals/{token}/{decision}")
-    @app.get("/approvals/{token}/{decision}")
+    @app.post("/approvals/{token}/{decision}")  # POST only: link previews must not approve
     async def approval(token: str, decision: str, rt: Runtime = Depends(get_rt)) -> dict:
         if decision not in ("approve", "deny"):
             raise HTTPException(400, "approve or deny")
@@ -179,6 +178,22 @@ def create_app(rt: Runtime | None = None, start_scheduler: bool = True) -> FastA
             raise HTTPException(404, f"tasks: {sorted(task_table())}")
         asyncio.create_task(fn(rt))
         return {"started": name}
+
+    @app.get("/models", dependencies=[Depends(auth)])
+    async def models_status(rt: Runtime = Depends(get_rt)) -> dict:
+        """Also used by pc/download_models.py to learn which Ollama models to fetch."""
+        out: dict[str, Any] = {"required": models.required_models(rt.settings)}
+        try:
+            out.update(await models.model_status(rt))
+        except LLMUnavailable as e:
+            out["error"] = f"PC offline: {e}"
+        out["last_ensure"] = rt.db.kv_get("models:status")
+        return out
+
+    @app.post("/models/pull", dependencies=[Depends(auth)])
+    async def models_pull(rt: Runtime = Depends(get_rt)) -> dict:
+        asyncio.create_task(models.ensure_models(rt, force=True))
+        return {"started": True}
 
     @app.post("/reload", dependencies=[Depends(auth)])
     async def reload() -> dict:

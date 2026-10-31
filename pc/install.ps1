@@ -1,11 +1,10 @@
 # Windows PC setup for the assistant. Run in an *elevated* PowerShell from the repo's pc\ folder:
 #   Set-ExecutionPolicy -Scope Process Bypass
 #   .\install.ps1 -M7Ip 100.x.y.z            # M7's Tailscale (or LAN) IP
-# Optional: -SkipModels  -SkipVoices  -NoAutostart
+# Optional: -SkipModels  -NoAutostart
 param(
     [Parameter(Mandatory = $true)][string]$M7Ip,
     [switch]$SkipModels,
-    [switch]$SkipVoices,
     [switch]$NoAutostart
 )
 $ErrorActionPreference = "Stop"
@@ -26,17 +25,23 @@ if (-not (Test-Path config.yaml)) {
 }
 
 Write-Host "== Ollama settings (keeps VRAM free when idle) ==" -ForegroundColor Cyan
-[Environment]::SetEnvironmentVariable("OLLAMA_HOST", "0.0.0.0", "User")
-[Environment]::SetEnvironmentVariable("OLLAMA_KEEP_ALIVE", "2m", "User")
-[Environment]::SetEnvironmentVariable("OLLAMA_MAX_LOADED_MODELS", "1", "User")
-[Environment]::SetEnvironmentVariable("OLLAMA_NUM_PARALLEL", "1", "User")
-[Environment]::SetEnvironmentVariable("OLLAMA_FLASH_ATTENTION", "1", "User")
+$ollamaEnv = @{ OLLAMA_HOST = "0.0.0.0"; OLLAMA_KEEP_ALIVE = "2m"; OLLAMA_MAX_LOADED_MODELS = "1";
+               OLLAMA_NUM_PARALLEL = "1"; OLLAMA_FLASH_ATTENTION = "1" }
+foreach ($k in $ollamaEnv.Keys) {
+    [Environment]::SetEnvironmentVariable($k, $ollamaEnv[$k], "User")   # future logons
+    Set-Item -Path "Env:$k" -Value $ollamaEnv[$k]                         # the Ollama we restart below
+}
 if (-not (Get-Command ollama -ErrorAction SilentlyContinue)) {
     Write-Host "Ollama not found. Install from https://ollama.com/download, then re-run." -ForegroundColor Yellow
-} elseif (-not $SkipModels) {
-    Write-Host "Restart Ollama from the tray so it picks up the new settings, then pulling models..."
-    ollama pull qwen2.5:7b
-    ollama pull qwen2.5:3b
+} else {
+    Write-Host "Restarting Ollama so it picks up the new settings..."
+    Get-Process ollama*, "ollama app" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+    Start-Sleep 2
+    $tray = Join-Path $env:LOCALAPPDATA "Programs\Ollama\ollama app.exe"
+    if (Test-Path $tray) { Start-Process $tray } else { Start-Process ollama -ArgumentList "serve" -WindowStyle Hidden }
+    for ($i = 0; $i -lt 20; $i++) {
+        try { Invoke-RestMethod http://localhost:11434/api/tags -TimeoutSec 2 | Out-Null; break } catch { Start-Sleep 1 }
+    }
 }
 
 Write-Host "== Firewall: only M7 may reach Ollama (11434) and the host agent (8090) ==" -ForegroundColor Cyan
@@ -46,21 +51,11 @@ foreach ($p in @(11434, 8090)) {
     New-NetFirewallRule -DisplayName $name -Direction Inbound -Protocol TCP -LocalPort $p -RemoteAddress $M7Ip -Action Allow | Out-Null
 }
 
-if (-not $SkipVoices) {
-    Write-Host "== Piper voices ==" -ForegroundColor Cyan
-    New-Item -ItemType Directory -Force voices | Out-Null
-    $base = "https://huggingface.co/rhasspy/piper-voices/resolve/main"
-    $voices = @("en/en_US/ryan/high/en_US-ryan-high", "en/en_GB/alan/medium/en_GB-alan-medium",
-                "en/en_US/amy/medium/en_US-amy-medium", "en/en_US/joe/medium/en_US-joe-medium")
-    foreach ($v in $voices) {
-        $file = Split-Path $v -Leaf
-        foreach ($ext in @(".onnx", ".onnx.json")) {
-            if (-not (Test-Path "voices\$file$ext")) {
-                Write-Host "  $file$ext"
-                Invoke-WebRequest "$base/$v$ext" -OutFile "voices\$file$ext"
-            }
-        }
-    }
+if (-not $SkipModels) {
+    Write-Host "== Downloading models (Piper voices, Whisper, Ollama models M7 needs) ==" -ForegroundColor Cyan
+    # Idempotent: only fetches what's missing. M7 also auto-pulls Ollama models every 6h.
+    & .\.venv\Scripts\python.exe download_models.py
+    if ($LASTEXITCODE -ne 0) { Write-Host "Some downloads failed; re-run: .\.venv\Scripts\python.exe download_models.py" -ForegroundColor Yellow }
 }
 
 if (-not $NoAutostart) {
@@ -72,12 +67,17 @@ if (-not $NoAutostart) {
     Register-ScheduledTask -TaskName "Assistant Host Agent" -Action $a1 -Trigger $trigger -Settings $settings -Force | Out-Null
     $a2 = New-ScheduledTaskAction -Execute $py -Argument "voice_client.py" -WorkingDirectory $Here
     Register-ScheduledTask -TaskName "Assistant Voice" -Action $a2 -Trigger $trigger -Settings $settings -Force | Out-Null
-    Write-Host "Registered 'Assistant Host Agent' and 'Assistant Voice' (Task Scheduler)."
+    # Weekly re-check so new voices / models added to the configs get fetched without you doing anything
+    $weekly = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Sunday -At 4am
+    $a3 = New-ScheduledTaskAction -Execute $py -Argument "download_models.py" -WorkingDirectory $Here
+    Register-ScheduledTask -TaskName "Assistant Model Updates" -Action $a3 -Trigger $weekly -Settings $settings -Force | Out-Null
+    Write-Host "Registered 'Assistant Host Agent', 'Assistant Voice' and 'Assistant Model Updates' (Task Scheduler)."
 }
 
 Write-Host ""
 Write-Host "Done. Next:" -ForegroundColor Green
 Write-Host "  1. Edit pc\config.yaml: server.url / server.api_token, your display profiles and apps."
+Write-Host "     (then re-run download_models.py so the Ollama list comes from M7)"
 Write-Host "  2. Test:  .\.venv\Scripts\python.exe host_agent.py     (then from M7: python -m assistant doctor)"
 Write-Host "  3. Test:  .\.venv\Scripts\python.exe voice_client.py --text"
 Write-Host "  4. For the nightly run: enable Wake-on-LAN in BIOS + network adapter properties, put the MAC in M7 .env (PC_MAC)."

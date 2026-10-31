@@ -44,7 +44,7 @@ def next_run(entry: dict, now: datetime) -> datetime:
 
 
 def task_table() -> dict:
-    from . import jarvis_runner, reports, tasks
+    from . import jarvis_runner, models, reports, tasks
     from .agents.skynet import audit
     from .collectors import run_collectors
     return {
@@ -57,6 +57,7 @@ def task_table() -> dict:
         "reminders": lambda rt, **kw: tasks.fire_due_reminders(rt),
         "brief": lambda rt, **kw: tasks.build_brief(rt),
         "report": lambda rt, name="daily", **kw: reports.generate(rt, name),
+        "ensure_models": lambda rt, **kw: models.ensure_models(rt),
     }
 
 
@@ -73,7 +74,8 @@ class Scheduler:
     async def run(self) -> None:
         table = task_table()
         now = now_local(self.rt.settings)
-        due = {e["name"]: next_run(e, now) for e in self.entries}
+        # run_at_start: fire once shortly after boot (e.g. ensure_models), then on schedule
+        due = {e["name"]: (now if e.get("run_at_start") else next_run(e, now)) for e in self.entries}
         log.info("scheduler: %s", {k: v.strftime("%m-%d %H:%M:%S") for k, v in due.items()})
         while not self._stop.is_set():
             now = now_local(self.rt.settings)

@@ -27,6 +27,10 @@ models:
   router: qwen2.5:3b                  # Jarvis intent + status summaries
   heavy: qwen2.5:7b                   # Mother / nightly (runs when you're AFK)
 
+# Any model listed above (or in an agent YAML) is downloaded onto the PC automatically
+# (at startup + every 6h). Add models here to pre-download ones you want to try.
+extra_models: []
+
 gpu_gate:
   idle_seconds: 600                   # background GPU work only after 10 min AFK...
   night_window: "04:30-06:30"         # ...or inside this window
@@ -85,6 +89,7 @@ schedule:
   - {name: perishables, daily: "17:30", task: perishables_reminder}
   - {name: jarvis_status, every: 2m, task: jarvis_status}
   - {name: weekly_report, weekly: "sun 19:00", task: report, args: {name: weekly}}
+  - {name: ensure_models, every: 6h, task: ensure_models, run_at_start: true}
 
 backup:
   # rsync destination for nightly DB snapshots. Something NOT on the vault drive,

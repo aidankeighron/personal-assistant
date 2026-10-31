@@ -10,6 +10,7 @@
   report NAME           generate a report now
   project NAME [--git URL] [--path DIR] [--description TEXT]   register a Jarvis project
   backup                snapshot the database now
+  models [--pull] [--force]   show which Ollama models the agents need; --pull downloads missing ones onto the PC
   doctor                check connectivity to PC (Ollama + host agent), notifications, docker
   auth-google           one-time Google OAuth (run on a machine with a browser)
   init                  create config/settings.yaml + .env from the examples
@@ -100,9 +101,10 @@ async def _doctor() -> None:
     try:
         models = await rt.llm.models()
         print(f"ollama        OK  {s['pc']['ollama_url']}  models={models}")
-        for alias in ("fast", "router", "heavy"):
-            m = s.model(alias)
-            print(f"  model {alias:<6} {m:<20} {'OK' if m in models else 'MISSING -> ollama pull ' + m}")
+        from .models import model_status
+        st = await model_status(rt)
+        for m in st["required"]:
+            print(f"  model {m:<28} {'MISSING (python -m assistant models --pull)' if m in st['missing'] else 'OK'}")
     except LLMUnavailable as e:
         print(f"ollama        FAIL {e}")
     try:
@@ -114,6 +116,37 @@ async def _doctor() -> None:
     print(f"claude (local) {'found' if shutil.which('claude') else 'not on PATH (fine if runner=docker)'}")
     agents = s.agents()
     print(f"agents        {', '.join(agents)}")
+
+
+async def _models(pull: bool, force: bool) -> None:
+    from .models import ensure_models, model_status
+    from .llm import LLMUnavailable
+    rt = _rt()
+    try:
+        st = await model_status(rt)
+    except LLMUnavailable as e:
+        print(f"PC Ollama unreachable: {e}")
+        return
+    for m in st["required"]:
+        print(f"  {'MISSING' if m in st['missing'] else 'ok     '} {m}")
+    if not pull:
+        if st["missing"]:
+            print("run with --pull to download the missing models onto the PC")
+        return
+    state: dict = {}
+
+    def show(model: str, ev: dict) -> None:
+        total, done = ev.get("total"), ev.get("completed")
+        line = f"  {model}: {ev.get('status', '')}"
+        if total and done:
+            line += f" {done / 2**30:.2f}/{total / 2**30:.2f} GB ({done * 100 // total}%)"
+        if line != state.get("last"):
+            print(line.ljust(90), end="\r", flush=True)
+            state["last"] = line
+
+    res = await ensure_models(rt, pull=True, force=force, progress=show)
+    print()
+    print(json.dumps(res, indent=2))
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -140,6 +173,9 @@ def main(argv: list[str] | None = None) -> None:
     sp.add_argument("--path")
     sp.add_argument("--description", default="")
     sub.add_parser("backup")
+    sp = sub.add_parser("models")
+    sp.add_argument("--pull", action="store_true")
+    sp.add_argument("--force", action="store_true", help="pull even if a fullscreen app is running")
     sub.add_parser("doctor")
     sp = sub.add_parser("auth-google")
     sp.add_argument("--client-secret", default="client_secret.json")
@@ -176,6 +212,8 @@ def main(argv: list[str] | None = None) -> None:
     elif a.cmd == "backup":
         from .tasks import backup
         print(backup(_rt()))
+    elif a.cmd == "models":
+        asyncio.run(_models(a.pull, a.force))
     elif a.cmd == "doctor":
         asyncio.run(_doctor())
     elif a.cmd == "auth-google":

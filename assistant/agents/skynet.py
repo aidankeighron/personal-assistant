@@ -92,6 +92,16 @@ async def audit(rt) -> list[dict]:
     for j in rt.db.query("SELECT id, kind, error FROM jobs WHERE status='failed' AND finished>?", (now - DAY,)):
         _finding(rt, "warn", "jobs", f"Job {j['kind']} #{j['id']} failed: {(j['error'] or '')[:100]}", out)
 
+    # 5b. Models the agents need but the PC doesn't have (auto-pull should fix these)
+    from ..llm import LLMUnavailable
+    from ..models import model_status
+    try:
+        missing = (await model_status(rt))["missing"]
+        if missing:
+            _finding(rt, "warn", "models", f"PC is missing models: {', '.join(missing)} (auto-pull pending)", out)
+    except LLMUnavailable:
+        pass
+
     # 6. Secret scan of Jarvis projects (tracked files only)
     for p in jr.list_projects(rt):
         for hit in scan_secrets(Path(p["path"])):
