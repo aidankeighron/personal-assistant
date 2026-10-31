@@ -1,0 +1,1078 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rocky · Jarvis · Mother · Skynet</title>
+<meta name="description" content="A local multi-agent personal assistant: the Windows PC is the brain, the M7 server is the body and the memory.">
+<style>
+  :root {
+    --bg: #f7f7f5; --surface: #ffffff; --surface-2: #f1f1ee; --border: #e3e3de; --border-strong: #cfcfc8;
+    --text: #1a1a1d; --muted: #5b5b63; --faint: #8a8a92;
+    --code-bg: #f3f3f0; --code-text: #2a2a2e;
+    --accent: #2f5bd3; --accent-soft: #e8eefc;
+    --rocky: #b86e00; --rocky-soft: #fbf0dc;
+    --jarvis: #0b78a8; --jarvis-soft: #e2f3fa;
+    --mother: #0f8a5f; --mother-soft: #e0f4ec;
+    --skynet: #c23b3b; --skynet-soft: #fbe6e6;
+    --pc: #6d4ad8; --pc-soft: #efeafd;
+    --m7: #0f8a5f; --m7-soft: #e0f4ec;
+    --warn-bg: #fff6e0; --warn-border: #f0d48a;
+    --shadow: 0 1px 2px rgba(20,20,30,.05), 0 4px 16px rgba(20,20,30,.04);
+    --radius: 12px;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0d0d10; --surface: #16161a; --surface-2: #1d1d22; --border: #2a2a31; --border-strong: #3a3a43;
+      --text: #ececf0; --muted: #a3a3ad; --faint: #75757f;
+      --code-bg: #111115; --code-text: #e2e2e8;
+      --accent: #7c9cff; --accent-soft: #1d2440;
+      --rocky: #f5a524; --rocky-soft: #2e2412;
+      --jarvis: #4cc2f0; --jarvis-soft: #102a36;
+      --mother: #3fd29a; --mother-soft: #0f2b21;
+      --skynet: #f17171; --skynet-soft: #321717;
+      --pc: #a68bff; --pc-soft: #231c3d;
+      --m7: #3fd29a; --m7-soft: #0f2b21;
+      --warn-bg: #2b230f; --warn-border: #5c4a17;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.25);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0d0d10; --surface: #16161a; --surface-2: #1d1d22; --border: #2a2a31; --border-strong: #3a3a43;
+    --text: #ececf0; --muted: #a3a3ad; --faint: #75757f;
+    --code-bg: #111115; --code-text: #e2e2e8;
+    --accent: #7c9cff; --accent-soft: #1d2440;
+    --rocky: #f5a524; --rocky-soft: #2e2412;
+    --jarvis: #4cc2f0; --jarvis-soft: #102a36;
+    --mother: #3fd29a; --mother-soft: #0f2b21;
+    --skynet: #f17171; --skynet-soft: #321717;
+    --pc: #a68bff; --pc-soft: #231c3d;
+    --m7: #3fd29a; --m7-soft: #0f2b21;
+    --warn-bg: #2b230f; --warn-border: #5c4a17;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.25);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  a { color: var(--accent); }
+  code, pre, kbd { font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace; }
+  :not(pre) > code {
+    background: var(--code-bg); border: 1px solid var(--border); border-radius: 5px;
+    padding: .05em .35em; font-size: .88em; overflow-wrap: anywhere;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+
+  /* ---------- header ---------- */
+  header.hero { padding: 48px 0 28px; }
+  .eyebrow { font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); margin: 0 0 10px; }
+  h1 { font-size: clamp(30px, 5.2vw, 46px); line-height: 1.1; letter-spacing: -.02em; margin: 0 0 14px; }
+  h1 .dot { color: var(--faint); font-weight: 400; }
+  .lede { font-size: clamp(17px, 2.2vw, 19px); color: var(--muted); max-width: 720px; margin: 0 0 26px; }
+  .agents { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .agent {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px 16px; box-shadow: var(--shadow); border-top: 3px solid var(--c);
+  }
+  .agent b { display: block; font-size: 17px; color: var(--c); }
+  .agent span { display: block; font-size: 14px; color: var(--muted); line-height: 1.45; margin-top: 2px; }
+  .rocky { --c: var(--rocky); --cs: var(--rocky-soft); }
+  .jarvis { --c: var(--jarvis); --cs: var(--jarvis-soft); }
+  .mother { --c: var(--mother); --cs: var(--mother-soft); }
+  .skynet { --c: var(--skynet); --cs: var(--skynet-soft); }
+
+  /* ---------- tabs ---------- */
+  .tabbar {
+    position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-bottom: 1px solid var(--border);
+  }
+  .tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; padding: 8px 0; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    flex: 0 0 auto; appearance: none; border: 1px solid transparent; background: none; color: var(--muted);
+    font: inherit; font-size: 15px; font-weight: 550; padding: 8px 14px; border-radius: 999px; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;
+  }
+  .tab:hover { color: var(--text); background: var(--surface-2); }
+  .tab[aria-selected="true"] { color: var(--text); background: var(--surface); border-color: var(--border-strong); box-shadow: var(--shadow); }
+  .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .tab .n {
+    font-size: 12px; font-weight: 700; width: 20px; height: 20px; border-radius: 50%; display: inline-grid; place-items: center;
+    background: var(--surface-2); color: var(--muted);
+  }
+  .tab[aria-selected="true"] .n { background: var(--accent); color: #fff; }
+
+  main { padding: 32px 0 64px; }
+  [role="tabpanel"][hidden] { display: none; }
+  [role="tabpanel"]:focus { outline: none; }
+  [role="tabpanel"] { scroll-margin-top: 72px; }   /* keep the heading clear of the sticky tab bar */
+  h2 { font-size: clamp(24px, 3.4vw, 30px); letter-spacing: -.015em; line-height: 1.2; margin: 0 0 8px; }
+  h3 { font-size: 19px; margin: 36px 0 10px; letter-spacing: -.01em; }
+  .panel-lede { color: var(--muted); margin: 0 0 24px; max-width: 760px; }
+
+  /* ---------- steps ---------- */
+  ol.steps { list-style: none; margin: 0; padding: 0; counter-reset: step; }
+  ol.steps > li {
+    position: relative; counter-increment: step; padding: 0 0 28px 52px; border-left: 2px solid var(--border);
+    margin-left: 17px;
+  }
+  ol.steps > li:last-child { border-left-color: transparent; padding-bottom: 4px; }
+  ol.steps > li::before {
+    content: counter(step); position: absolute; left: -18px; top: -2px; width: 34px; height: 34px; border-radius: 50%;
+    display: grid; place-items: center; font-weight: 700; font-size: 15px;
+    background: var(--surface); border: 2px solid var(--sc, var(--accent)); color: var(--sc, var(--accent));
+  }
+  .server-steps { --sc: var(--m7); }
+  .pc-steps { --sc: var(--pc); }
+  ol.steps h4 { margin: 3px 0 6px; font-size: 18px; }
+  ol.steps p { margin: 0 0 10px; }
+  ol.steps ul { margin: 0 0 10px; padding-left: 20px; }
+  ol.steps li li { margin: 3px 0; }
+
+  /* ---------- code ---------- */
+  .code { position: relative; margin: 8px 0 14px; }
+  .code pre {
+    margin: 0; background: var(--code-bg); color: var(--code-text); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 16px; overflow-x: auto; font-size: 13.5px; line-height: 1.6; white-space: pre;
+  }
+  .code .lang {
+    position: absolute; top: 8px; right: 70px; font-size: 11px; font-weight: 600; letter-spacing: .05em;
+    text-transform: uppercase; color: var(--faint); pointer-events: none;
+  }
+  .copy {
+    position: absolute; top: 6px; right: 6px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+    background: var(--surface); color: var(--muted); border: 1px solid var(--border); border-radius: 6px; padding: 3px 9px;
+  }
+  .copy:hover { color: var(--text); border-color: var(--border-strong); }
+  .c { color: var(--faint); }
+
+  /* ---------- cards / callouts / tables ---------- */
+  .grid2 { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 16px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 16px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow);
+  }
+  .card h4 { margin: 0 0 8px; font-size: 17px; }
+  .card p { margin: 0 0 8px; color: var(--muted); font-size: 15px; }
+  .card p:last-child { margin-bottom: 0; }
+  .card ul { margin: 6px 0 0; padding-left: 18px; color: var(--muted); font-size: 15px; }
+  .card li { margin: 3px 0; }
+  .callout {
+    border: 1px solid var(--warn-border); background: var(--warn-bg); border-radius: 10px; padding: 12px 16px;
+    margin: 14px 0; font-size: 15px;
+  }
+  .callout.info { border-color: color-mix(in srgb, var(--accent) 35%, var(--border)); background: var(--accent-soft); }
+  .callout b:first-child { margin-right: 4px; }
+  .tablewrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); margin: 10px 0 16px; }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { font-size: 13px; font-weight: 650; color: var(--muted); background: var(--surface-2); letter-spacing: .02em; }
+  tr:last-child td { border-bottom: 0; }
+  td.say { font-style: italic; min-width: 220px; }
+  .pill {
+    display: inline-block; font-size: 12px; font-weight: 700; padding: 1px 8px; border-radius: 999px;
+    color: var(--c); background: var(--cs); white-space: nowrap; font-style: normal;
+  }
+  .pill.pc { --c: var(--pc); --cs: var(--pc-soft); }
+  .pill.m7 { --c: var(--m7); --cs: var(--m7-soft); }
+  details { border: 1px solid var(--border); border-radius: 10px; background: var(--surface); padding: 0 16px; margin: 12px 0; }
+  summary { cursor: pointer; font-weight: 600; padding: 12px 0; }
+  details[open] summary { border-bottom: 1px solid var(--border); margin-bottom: 10px; }
+  details > :last-child { margin-bottom: 14px; }
+
+  /* ---------- flows ---------- */
+  .flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; margin: 12px 0 18px; }
+  .flow .node {
+    flex: 1 1 150px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px;
+    font-size: 14px; box-shadow: var(--shadow); border-left: 3px solid var(--nc, var(--border-strong));
+  }
+  .flow .node b { display: block; font-size: 14.5px; }
+  .flow .node small { color: var(--muted); font-size: 13px; line-height: 1.4; display: block; margin-top: 2px; }
+  .flow .arrow { flex: 0 0 auto; align-self: center; color: var(--faint); font-size: 18px; }
+  .node.on-pc { --nc: var(--pc); }
+  .node.on-m7 { --nc: var(--m7); }
+  .node.on-phone { --nc: var(--accent); }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); margin: 4px 0 0; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+
+  .tiers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .tier { border-radius: 10px; padding: 12px 14px; border: 1px solid var(--border); background: var(--surface); font-size: 14px; }
+  .tier b { display: block; font-size: 15px; margin-bottom: 2px; }
+  .tier span { color: var(--muted); }
+
+  .timeline { border-left: 2px solid var(--border); margin: 10px 0 0 6px; padding-left: 18px; }
+  .timeline div { position: relative; margin: 0 0 12px; font-size: 15px; }
+  .timeline div::before {
+    content: ""; position: absolute; left: -25px; top: 7px; width: 10px; height: 10px; border-radius: 50%;
+    background: var(--surface); border: 2px solid var(--mother);
+  }
+  .timeline b { font-variant-numeric: tabular-nums; }
+
+  /* ---------- split diagram ---------- */
+  .diagram { overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; box-shadow: var(--shadow); }
+  .diagram svg { display: block; min-width: 700px; width: 100%; height: auto; }
+  .diagram text { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; fill: var(--text); }
+  .diagram .muted { fill: var(--muted); }
+  .diagram .title { font-weight: 700; font-size: 17px; }
+  .diagram .sub { font-size: 12.5px; fill: var(--muted); }
+  .diagram .item { font-size: 13.5px; }
+  .diagram .lab { font-size: 12.5px; font-weight: 650; }
+  .diagram .box-pc { fill: var(--pc-soft); stroke: var(--pc); }
+  .diagram .box-m7 { fill: var(--m7-soft); stroke: var(--m7); }
+  .diagram .box-ph { fill: var(--accent-soft); stroke: var(--accent); }
+  .diagram .box-in { fill: var(--surface); stroke: var(--border-strong); }
+  .diagram .ln { stroke: var(--muted); stroke-width: 1.6; fill: none; }
+  .diagram .ah { fill: var(--muted); }
+  .diagram .t-pc { fill: var(--pc); }
+  .diagram .t-m7 { fill: var(--m7); }
+  .diagram .t-ph { fill: var(--accent); }
+
+  .split-cols { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 16px; margin-top: 20px; }
+  .split-cols .card { border-top: 3px solid var(--c); }
+  .split-cols .pcside { --c: var(--pc); }
+  .split-cols .m7side { --c: var(--m7); }
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 14.5px; margin-top: 8px; }
+  .kv dt { color: var(--faint); font-weight: 600; }
+  .kv dd { margin: 0; color: var(--muted); }
+
+  /* ---------- data collection ---------- */
+  .tag { display: inline-block; font-size: 11.5px; font-weight: 700; letter-spacing: .02em; padding: 1px 8px;
+         border-radius: 999px; white-space: nowrap; vertical-align: 2px; }
+  .tag.auto { color: var(--m7); background: var(--m7-soft); }
+  .tag.up { color: var(--jarvis); background: var(--jarvis-soft); }
+  .tag.phone { color: var(--accent); background: var(--accent-soft); }
+  .tag.na { color: var(--faint); background: var(--surface-2); }
+  .ways .card { border-top: 3px solid var(--c); }
+  .ways .w1 { --c: var(--m7); } .ways .w2 { --c: var(--jarvis); } .ways .w3 { --c: var(--accent); }
+  .src { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
+         padding: 18px 20px; margin: 0 0 14px; scroll-margin-top: 70px; }
+  .src > header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; margin-bottom: 6px; }
+  .src h4 { margin: 0; font-size: 18px; }
+  .src > p { margin: 0 0 10px; color: var(--muted); font-size: 15px; }
+  .plat { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 12px; }
+  .plat > div, .card, .src { min-width: 0; }
+  .plat > div { background: var(--surface-2); border-radius: 10px; padding: 12px 14px; font-size: 14.5px; }
+  .plat h5 { margin: 0 0 6px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); }
+  .plat ol, .plat ul { margin: 0; padding-left: 18px; }
+  .plat li { margin: 3px 0; }
+  .plat p { margin: 0; color: var(--muted); }
+  .plat .code pre { font-size: 12.5px; padding: 10px 12px; }
+  .srcnav { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 18px; }
+  .srcnav a { font-size: 13.5px; text-decoration: none; color: var(--text); background: var(--surface);
+              border: 1px solid var(--border); border-radius: 999px; padding: 4px 11px; }
+  .srcnav a:hover { border-color: var(--border-strong); }
+  td .tag { margin-right: 4px; }
+
+  footer { border-top: 1px solid var(--border); padding: 22px 0 40px; color: var(--faint); font-size: 14px; }
+
+  @media (max-width: 820px) {
+    .agents, .tiers { grid-template-columns: 1fr 1fr; }
+    .grid2, .grid3, .split-cols, .plat { grid-template-columns: minmax(0,1fr); }
+  }
+  @media (max-width: 460px) {
+    header.hero { padding-top: 32px; }
+    .agents { gap: 8px; }
+    .agent { padding: 12px; }
+    ol.steps > li { padding-left: 34px; margin-left: 14px; }
+    ol.steps > li::before { width: 28px; height: 28px; left: -15px; font-size: 13px; }
+    th, td { padding: 9px 10px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero wrap">
+  <p class="eyebrow">Local multi-agent personal assistant</p>
+  <h1>Rocky <span class="dot">·</span> Jarvis <span class="dot">·</span> Mother <span class="dot">·</span> Skynet</h1>
+  <p class="lede">Four agents with their own jobs and voices. Your <strong>Windows PC</strong> is the brain: it runs the
+    models on the RTX 3070 Ti. A cheap <strong>M7 server</strong> is the body and the memory: it runs the agents, stores
+    everything on a 5TB drive, and is the agents' sandbox.</p>
+  <div class="agents">
+    <div class="agent rocky"><b>Rocky</b><span>Everyday real-time voice. Weather, timers, PC control, fridge.</span></div>
+    <div class="agent jarvis"><b>Jarvis</b><span>Coding. Runs Claude Code after you approve, reads you status updates.</span></div>
+    <div class="agent mother"><b>Mother</b><span>Your data. Nightly morning brief, analysis, reports you can reshape.</span></div>
+    <div class="agent skynet"><b>Skynet</b><span>Background audits: security, backups, memory sanity.</span></div>
+  </div>
+</header>
+
+<nav class="tabbar" aria-label="Sections">
+  <div class="wrap">
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" id="t-server" aria-controls="server" aria-selected="true"><span class="n">1</span>Server setup</button>
+      <button class="tab" role="tab" id="t-pc" aria-controls="pc" aria-selected="false" tabindex="-1"><span class="n">2</span>PC setup</button>
+      <button class="tab" role="tab" id="t-data" aria-controls="data" aria-selected="false" tabindex="-1"><span class="n">3</span>Data collection</button>
+      <button class="tab" role="tab" id="t-use" aria-controls="use" aria-selected="false" tabindex="-1"><span class="n">4</span>Using it</button>
+      <button class="tab" role="tab" id="t-how" aria-controls="how" aria-selected="false" tabindex="-1"><span class="n">5</span>How it works</button>
+      <button class="tab" role="tab" id="t-split" aria-controls="split" aria-selected="false" tabindex="-1"><span class="n">6</span>PC ↔ Server</button>
+    </div>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<!-- ================================================================== SERVER -->
+<section role="tabpanel" id="server" aria-labelledby="t-server" tabindex="0">
+  <h2>Set up the M7 server</h2>
+  <p class="panel-lede">Do the server first: the PC installer needs the server's Tailscale IP. Plan on an evening. The server
+    runs Ubuntu Server, keeps everything on the 5TB drive, and runs one light Python service plus Docker for the sandbox.</p>
+
+  <ol class="steps server-steps">
+    <li>
+      <h4>Install the OS</h4>
+      <p>Install <strong>Ubuntu Server 24.04 LTS</strong> on M7's internal drive. Enable OpenSSH and create your user during
+        install. A hard-drive boot disk is fine: the assistant uses SQLite and very little I/O.</p>
+    </li>
+    <li>
+      <h4>Tailscale and the code</h4>
+      <div class="code"><span class="lang">bash</span><pre>curl -fsSL https://tailscale.com/install.sh | sh
+sudo tailscale up --ssh
+git clone https://github.com/aidankeighron/personal-assistant.git ~/personal-assistant</pre></div>
+      <p>In the Tailscale admin console, rename this machine to <code>m7</code> and your PC to <code>desktop</code>
+        (or use other names and put them in <code>.env</code>). Note the IP from <code>tailscale ip -4</code>; the PC installer needs it.</p>
+    </li>
+    <li>
+      <h4>Mount the 5TB drive at <code>/mnt/vault</code></h4>
+      <div class="code"><span class="lang">bash</span><pre>lsblk -f                      <span class="c"># find the drive and its UUID</span>
+sudo mkdir -p /mnt/vault
+echo 'UUID=&lt;uuid&gt; /mnt/vault ext4 defaults,nofail,noatime,x-systemd.device-timeout=30 0 2' | sudo tee -a /etc/fstab
+sudo mount -a &amp;&amp; df -h /mnt/vault</pre></div>
+      <div class="callout"><b>Tip:</b> ext4 is far more reliable for a database than NTFS. If the drive already holds data,
+        copy it off and reformat if you can. To stop USB power-saving from dropping the drive, add
+        <code>usbcore.autosuspend=-1</code> to <code>GRUB_CMDLINE_LINUX_DEFAULT</code> in <code>/etc/default/grub</code>,
+        then run <code>sudo update-grub</code>.</div>
+    </li>
+    <li>
+      <h4>Run the installer</h4>
+      <div class="code"><span class="lang">bash</span><pre>sudo bash ~/personal-assistant/deploy/m7/install.sh</pre></div>
+      <p>Safe to re-run. It:</p>
+      <ul>
+        <li>installs Docker and creates an <code>assistant</code> service user</li>
+        <li>copies the code to <code>/opt/assistant</code> and generates <code>.env</code> with random tokens</li>
+        <li>builds the sandbox image and starts the <code>pa-sandbox</code> container</li>
+        <li>registers the assistant's own repo as a Jarvis project, so Jarvis can improve itself</li>
+        <li>opens port 8000 on Tailscale only and starts the <code>assistant</code> systemd service</li>
+      </ul>
+    </li>
+    <li>
+      <h4>Configure</h4>
+      <div class="code"><span class="lang">bash</span><pre>sudo -u assistant nano /opt/assistant/.env
+sudo -u assistant nano /opt/assistant/config/settings.yaml   <span class="c"># models, timezone, data sources</span></pre></div>
+      <div class="tablewrap"><table>
+        <thead><tr><th><code>.env</code> key</th><th>What to put there</th></tr></thead>
+        <tbody>
+          <tr><td><code>ASSISTANT_API_TOKEN</code></td><td>Generated for you. Every client (PC, phone) uses it.</td></tr>
+          <tr><td><code>PC_HOST</code></td><td>The PC's Tailscale name, e.g. <code>desktop</code>.</td></tr>
+          <tr><td><code>PC_HOST_TOKEN</code></td><td>Replace with the token the PC installer prints (step 2 of PC setup).</td></tr>
+          <tr><td><code>PC_MAC</code></td><td>The PC's wired MAC address, for Wake-on-LAN before the 5 AM run.</td></tr>
+          <tr><td><code>NTFY_TOPIC</code></td><td>Generated. Subscribe to it in the ntfy phone app.</td></tr>
+          <tr><td><code>GITHUB_TOKEN</code></td><td>Optional: lets Mother see private GitHub activity.</td></tr>
+        </tbody>
+      </table></div>
+    </li>
+    <li>
+      <h4>Log Claude Code in for Jarvis</h4>
+      <div class="code"><span class="lang">bash</span><pre>sudo docker exec -it pa-sandbox claude    <span class="c"># complete the login, then /exit</span></pre></div>
+      <p>The login is saved on the vault and reused by every Jarvis run. Or set <code>ANTHROPIC_API_KEY</code> in
+        <code>.env</code> to use an API key instead of your subscription.</p>
+    </li>
+    <li>
+      <h4>Check everything</h4>
+      <div class="code"><span class="lang">bash</span><pre>sudo systemctl restart assistant
+sudo -u assistant /opt/assistant/.venv/bin/python -m assistant doctor   <span class="c"># can M7 reach the PC?</span>
+sudo -u assistant /opt/assistant/.venv/bin/python -m assistant models   <span class="c"># required vs installed models</span>
+sudo -u assistant /opt/assistant/.venv/bin/python -m assistant chat     <span class="c"># talk to the agents in the terminal</span>
+journalctl -u assistant -f                                               <span class="c"># live logs</span></pre></div>
+    </li>
+  </ol>
+
+  <h3>Hardening, once it works</h3>
+  <div class="grid2">
+    <div class="card"><h4>Off-box backups</h4><p>Set <code>backup.target</code> to an rsync destination that isn't the vault
+      drive, such as a share on the PC. Skynet warns when backups go stale.</p></div>
+    <div class="card"><h4>Rootless Docker</h4><p>The <code>assistant</code> user is in the <code>docker</code> group, which is
+      root-equivalent on M7. That's acceptable to start because M7 holds nothing from the PC; switch to rootless Docker to tighten.</p></div>
+    <div class="card"><h4>Self-host notifications</h4><p><code>docker compose --profile ntfy up -d</code> runs ntfy on M7 so pushes
+      never touch ntfy.sh.</p></div>
+    <div class="card"><h4>Keep the PC whitelist narrow</h4><p>Add apps and display profiles in <code>pc/config.yaml</code>. Never
+      add a shell endpoint to the host agent.</p></div>
+  </div>
+</section>
+
+<!-- ================================================================== PC -->
+<section role="tabpanel" id="pc" aria-labelledby="t-pc" tabindex="0" hidden>
+  <h2>Set up the Windows PC</h2>
+  <p class="panel-lede">The PC runs the models and the voice. It never runs agent code: M7 can only use a short whitelist of
+    actions you define. One PowerShell script does almost everything, including downloading every model.</p>
+
+  <ol class="steps pc-steps">
+    <li>
+      <h4>Install the basics</h4>
+      <ul>
+        <li><strong>Python 3.12</strong> from python.org (tick <em>Add python.exe to PATH</em>)</li>
+        <li><strong>Ollama</strong> from ollama.com/download</li>
+        <li><strong>Git</strong> for Windows</li>
+        <li><strong>Tailscale</strong>, signed in to the same account as M7</li>
+        <li><strong>ActivityWatch</strong>, set to start with Windows (plus the browser extension for per-tab tracking)</li>
+      </ul>
+    </li>
+    <li>
+      <h4>Run the installer</h4>
+      <p>In an <strong>administrator</strong> PowerShell:</p>
+      <div class="code"><span class="lang">powershell</span><pre>git clone https://github.com/aidankeighron/personal-assistant.git C:\assistant
+cd C:\assistant\pc
+Set-ExecutionPolicy -Scope Process Bypass
+.\install.ps1 -M7Ip &lt;M7 tailscale IP&gt;</pre></div>
+      <p>It creates a Python environment, configures and restarts Ollama (models unload after 2 minutes idle, one model at a
+        time), allows only M7 through the firewall, <strong>downloads every model</strong>, and registers three Task Scheduler
+        jobs: the host agent, the voice client, and a weekly model re-check. It prints a <code>host_agent.token</code>;
+        put that in M7's <code>.env</code> as <code>PC_HOST_TOKEN</code>.</p>
+    </li>
+    <li>
+      <h4>Models download themselves</h4>
+      <div class="tablewrap"><table>
+        <thead><tr><th>What</th><th>Fetched by</th><th>When</th></tr></thead>
+        <tbody>
+          <tr><td>Ollama models the agents use</td><td><span class="pill m7">M7</span> pulls them onto the PC over Ollama's API</td><td>M7 startup, then every 6 h. Waits while a game is fullscreen.</td></tr>
+          <tr><td>Ollama models on first install</td><td><span class="pill pc">PC</span> <code>download_models.py</code>, list taken from M7</td><td>Install, Sundays 4 AM</td></tr>
+          <tr><td>Piper voices in <code>pc\config.yaml</code></td><td><span class="pill pc">PC</span> <code>download_models.py</code>, voice client</td><td>Install, voice client start, weekly</td></tr>
+          <tr><td>Whisper speech model</td><td><span class="pill pc">PC</span> <code>download_models.py</code></td><td>Install, weekly</td></tr>
+        </tbody>
+      </table></div>
+      <p>To switch models you only edit config: change <code>models.fast</code> on M7, or add a voice to
+        <code>pc\config.yaml</code>, and it's fetched automatically.</p>
+    </li>
+    <li>
+      <h4>Measure your models</h4>
+      <div class="code"><span class="lang">powershell</span><pre>cd C:\assistant
+python prototypes\rocky_harness.py</pre></div>
+      <p>Compare first-response speed between tiers and put the winners under <code>models:</code> in M7's
+        <code>settings.yaml</code>.</p>
+      <div class="callout"><b>8 GB of VRAM:</b> keep interactive models at 8B parameters or less (Q4). A 14B model won't
+        fit and spills into system RAM. Also try newer families in the Ollama library; Qwen2.5 is the default, not the best.</div>
+    </li>
+    <li>
+      <h4>Edit <code>pc\config.yaml</code></h4>
+      <ul>
+        <li><code>server.url</code> = <code>http://m7:8000</code>, <code>server.api_token</code> = M7's <code>ASSISTANT_API_TOKEN</code></li>
+        <li><code>display_modes</code>: replace the placeholders with your real display switcher commands (movie, racing, desk, projector)</li>
+        <li><code>apps</code>: the games and apps Rocky may open. Nothing else can be launched.</li>
+        <li><code>projector.browser_cmd</code>: set <code>--window-position</code> to where the projector sits in your layout</li>
+      </ul>
+      <div class="callout info"><b>Two tokens, swapped once:</b> M7's <code>ASSISTANT_API_TOKEN</code> goes into the PC's
+        <code>server.api_token</code>, and the PC's <code>host_agent.token</code> goes into M7's <code>PC_HOST_TOKEN</code>.</div>
+    </li>
+    <li>
+      <h4>Wake-on-LAN, for Mother's 5 AM run</h4>
+      <ul>
+        <li>BIOS: enable <em>Wake on LAN</em> / <em>Power On By PCI-E</em></li>
+        <li>Device Manager → network adapter → Power Management: allow it to wake the PC, magic packet only</li>
+        <li>Turn off Fast Startup in Power Options</li>
+        <li><code>getmac /v</code> → wired adapter's MAC into M7's <code>PC_MAC</code>. Works on the home network, not over Tailscale.</li>
+      </ul>
+    </li>
+    <li>
+      <h4>Test</h4>
+      <div class="code"><span class="lang">powershell</span><pre>cd C:\assistant\pc
+.\.venv\Scripts\python.exe host_agent.py              <span class="c"># autostarts at next logon</span>
+.\.venv\Scripts\python.exe voice_client.py --text     <span class="c"># type "hey rocky what's the weather"</span>
+.\.venv\Scripts\python.exe voice_client.py            <span class="c"># say "Hey Rocky, what time is it?"</span></pre></div>
+      <p>If the wake word triggers on background noise, raise <code>voice.energy_threshold</code> or use push-to-talk with <code>--ptt</code>.</p>
+    </li>
+  </ol>
+</section>
+
+<!-- ================================================================== DATA -->
+<section role="tabpanel" id="data" aria-labelledby="t-data" tabindex="0" hidden>
+  <h2>Set up data collection</h2>
+  <p class="panel-lede">Mother can only answer questions about data she has. Each source below takes 5–15 minutes, once.
+    Start with the automatic ones; add the rest whenever you like. Everything lands in one database on M7, tagged by source.</p>
+
+  <div class="grid3 ways">
+    <div class="card w1"><h4><span class="tag auto">Automatic</span></h4>
+      <p>Collectors on M7 pull these every 30 minutes once they're set up: ActivityWatch, Google, GitHub, notes folders.</p></div>
+    <div class="card w2"><h4><span class="tag up">Upload</span></h4>
+      <p>For apps with no API (bank, LinkedIn, Half Full): export a file and tap <strong>⬆ Upload</strong> in the web app on
+        your PC or phone. CSV, JSON, Markdown, text, or a whole <code>.zip</code>. Ingested immediately.</p></div>
+    <div class="card w3"><h4><span class="tag phone">Phone automation</span></h4>
+      <p>Your phone sends events as they happen: OwnTracks for places, and iOS Shortcuts or Android Tasker for app use. All
+        go to <code>/ingest/&lt;source&gt;</code> over Tailscale.</p></div>
+  </div>
+
+  <h3>At a glance</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Source</th><th>Desktop</th><th>Mobile</th><th>Lands as</th></tr></thead>
+    <tbody>
+      <tr><td><a href="#src-pc">Computer usage</a></td><td><span class="tag auto">Automatic</span>ActivityWatch</td><td><span class="tag na">n/a</span></td><td><code>activitywatch</code></td></tr>
+      <tr><td><a href="#src-browser">Browser usage</a></td><td><span class="tag auto">Automatic</span>AW extension</td><td>via phone usage</td><td><code>activitywatch</code> (web)</td></tr>
+      <tr><td><a href="#src-google">Gmail · Calendar · Drive</a></td><td colspan="2"><span class="tag auto">Automatic</span>one Google sign-in covers every device</td><td><code>gmail</code> <code>gcal</code> <code>drive</code></td></tr>
+      <tr><td><a href="#src-github">GitHub</a></td><td colspan="2"><span class="tag auto">Automatic</span>username + optional token</td><td><code>github</code></td></tr>
+      <tr><td><a href="#src-location">Location</a></td><td><span class="tag na">n/a</span></td><td><span class="tag phone">Phone</span>OwnTracks</td><td><code>location</code></td></tr>
+      <tr><td><a href="#src-phone">Phone usage</a></td><td><span class="tag na">n/a</span></td><td><span class="tag phone">Phone</span>Shortcuts / Tasker</td><td><code>phone_usage</code></td></tr>
+      <tr><td><a href="#src-blocking">App blocking</a></td><td><span class="tag up">Upload</span>blocker logs</td><td><span class="tag phone">Phone</span>Shortcuts / Tasker</td><td><code>blocking</code></td></tr>
+      <tr><td><a href="#src-notes">Daily notes</a></td><td><span class="tag auto">Automatic</span>synced folder</td><td>"Rocky, take a note…"</td><td><code>notes</code></td></tr>
+      <tr><td><a href="#src-voice">Voice-to-text (Wispr Flow)</a></td><td><span class="tag up">Upload</span>history export</td><td><span class="tag up">Upload</span></td><td><code>wispr_flow</code></td></tr>
+      <tr><td><a href="#src-halffull">Half Full</a></td><td><span class="tag up">Upload</span>or the app posts</td><td>the app posts</td><td><code>half_full</code></td></tr>
+      <tr><td><a href="#src-finance">Finances</a></td><td><span class="tag up">Upload</span>bank CSV</td><td><span class="tag up">Upload</span></td><td><code>finance</code></td></tr>
+      <tr><td><a href="#src-linkedin">LinkedIn</a></td><td><span class="tag up">Upload</span>data export .zip</td><td><span class="tag up">Upload</span></td><td><code>linkedin</code></td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout info"><b>Coming later:</b> a dedicated mobile app for data collection, so phone usage, location and
+    quick uploads don't need OwnTracks, Shortcuts or Tasker. Until then, the routes below work today.</div>
+
+  <h3>Before you start</h3>
+  <ul>
+    <li>Phone on <strong>Tailscale</strong> (same account as M7) and, for HTTPS, <code>sudo tailscale serve --bg 8000</code> on M7.
+      Your base URL is then <code>https://m7.&lt;tailnet&gt;.ts.net</code>; the examples call it <code>$M7</code>.</li>
+    <li>Your API token (<code>ASSISTANT_API_TOKEN</code>) is shown below as <code>$TOKEN</code>. Phone automations pass it as
+      <code>?token=…</code>.</li>
+    <li>Collectors are switched on in M7's <code>config/settings.yaml</code> under <code>collectors.enabled</code>, then
+      <code>sudo systemctl restart assistant</code>.</li>
+  </ul>
+
+  <h3>Walkthroughs</h3>
+  <nav class="srcnav" aria-label="Data sources">
+    <a href="#src-pc">Computer</a><a href="#src-browser">Browser</a><a href="#src-google">Google</a><a href="#src-github">GitHub</a>
+    <a href="#src-location">Location</a><a href="#src-phone">Phone usage</a><a href="#src-blocking">Blocking</a>
+    <a href="#src-notes">Notes</a><a href="#src-voice">Voice-to-text</a><a href="#src-halffull">Half Full</a>
+    <a href="#src-finance">Finances</a><a href="#src-linkedin">LinkedIn</a>
+  </nav>
+
+  <article class="src" id="src-pc">
+    <header><h4>Computer usage</h4><span class="tag auto">Automatic</span></header>
+    <p>Which apps and windows you use, and for how long. Stays on your PC; M7 pulls it through the host agent. On by default.</p>
+    <div class="plat">
+      <div><h5>Desktop</h5><ol>
+        <li>Install ActivityWatch from activitywatch.net.</li>
+        <li>Open its tray icon → enable <em>Start on login</em>.</li>
+        <li>Nothing else: <code>activitywatch</code> is already in <code>collectors.enabled</code>.</li></ol></div>
+      <div><h5>Check it</h5><p>After 30 minutes, ask <em>"Mother, how long was I in VS Code today?"</em> The daily report's
+        <em>Computer Time</em> section fills in too.</p></div>
+    </div>
+  </article>
+
+  <article class="src" id="src-browser">
+    <header><h4>Browser usage</h4><span class="tag auto">Automatic</span></header>
+    <p>The active tab's site and title, from ActivityWatch's browser extension. Arrives with computer usage as <em>web</em> events.</p>
+    <div class="plat">
+      <div><h5>Desktop</h5><ol>
+        <li>Install <em>ActivityWatch Web Watcher</em> from the Chrome Web Store (works in Edge) or Firefox Add-ons.</li>
+        <li>Keep ActivityWatch running. The host agent already relays the extension's data.</li></ol></div>
+      <div><h5>Mobile</h5><p>Phones don't allow per-tab tracking. Browser time shows up at the app level under
+        <a href="#src-phone">phone usage</a>.</p></div>
+    </div>
+  </article>
+
+  <article class="src" id="src-google">
+    <header><h4>Gmail, Calendar, Drive</h4><span class="tag auto">Automatic</span></header>
+    <p>Read-only access: email subjects, senders and snippets; calendar events a week ahead; which Drive files changed. One
+      sign-in covers your phone too, since it's the same account.</p>
+    <div class="plat">
+      <div><h5>One-time setup (on the PC)</h5><ol>
+        <li>console.cloud.google.com → new project → enable the <strong>Gmail</strong>, <strong>Calendar</strong> and <strong>Drive</strong> APIs.</li>
+        <li>OAuth consent screen → External → add yourself as a test user.</li>
+        <li>Credentials → <em>Create OAuth client ID</em> → <em>Desktop app</em> → download the JSON as <code>client_secret.json</code>.</li>
+        <li>Sign in from <code>C:\assistant</code>:
+          <div class="code"><span class="lang">powershell</span><pre>pc\.venv\Scripts\pip install google-auth-oauthlib
+pc\.venv\Scripts\python -m assistant auth-google --client-secret client_secret.json --out token.json</pre></div></li></ol></div>
+      <div><h5>On M7</h5><ol>
+        <li>Copy <code>token.json</code> to <code>/mnt/vault/assistant/google/token.json</code> (owned by <code>assistant</code>).</li>
+        <li>Add <code>gmail, gcal, drive</code> to <code>collectors.enabled</code>, restart.</li>
+        <li>Test now:
+          <div class="code"><span class="lang">bash</span><pre>python -m assistant collect gmail gcal drive</pre></div></li></ol></div>
+    </div>
+  </article>
+
+  <article class="src" id="src-github">
+    <header><h4>GitHub</h4><span class="tag auto">Automatic</span></header>
+    <p>Your pushes, pull requests, issues and reviews, for the daily <em>Code</em> section and weekly review.</p>
+    <div class="plat">
+      <div><h5>On M7</h5><ol>
+        <li>Set <code>collectors.github.username</code> in <code>settings.yaml</code>.</li>
+        <li>Optional, for private repos: create a fine-grained token (read-only) on GitHub → Settings → Developer settings, and put it in <code>.env</code> as <code>GITHUB_TOKEN</code>.</li>
+        <li>Add <code>github</code> to <code>collectors.enabled</code>, restart.</li></ol></div>
+      <div><h5>Check it</h5><p><em>"Mother, what did I ship on GitHub this week?"</em></p></div>
+    </div>
+  </article>
+
+  <article class="src" id="src-location">
+    <header><h4>Location</h4><span class="tag phone">Phone automation</span></header>
+    <p>Places you arrive at and leave. Leaving a grocery store makes Rocky ask what you bought, which feeds the fridge tracker.</p>
+    <div class="plat">
+      <div><h5>iPhone or Android</h5><ol>
+        <li>Install <strong>OwnTracks</strong>.</li>
+        <li>Settings → Connection → Mode <strong>HTTP</strong>. URL:
+          <div class="code"><span class="lang">url</span><pre>$M7/location?token=$TOKEN</pre></div></li>
+        <li>Regions → add places by name: <em>Home</em>, <em>Gym</em>, and each store (<em>Kroger</em>, <em>Meijer</em>…).</li>
+        <li>Allow location <em>Always</em> so region exits fire in the background.</li></ol></div>
+      <div><h5>Good to know</h5><ul>
+        <li>Store names come from <code>groceries.store_keywords</code> in <code>settings.yaml</code>; add your own.</li>
+        <li>Rather not run OwnTracks? A Shortcuts/Tasker automation can POST <code>{"event":"leave","place":"Kroger"}</code> to the same URL.</li></ul></div>
+    </div>
+  </article>
+
+  <article class="src" id="src-phone">
+    <header><h4>Phone usage</h4><span class="tag phone">Phone automation</span></header>
+    <p>Screen Time (iOS) and Digital Wellbeing (Android) have no export or API, so the phone reports app opens itself. Pick the
+      apps you care about; you don't need all of them.</p>
+    <div class="plat">
+      <div><h5>iPhone: Shortcuts</h5><ol>
+        <li>Shortcuts → Automation → <strong>+</strong> → <strong>App</strong> → choose apps → <em>Is Opened</em> → <em>Run Immediately</em>.</li>
+        <li>Action: <strong>Get Contents of URL</strong>, method POST, URL <code>$M7/ingest/phone_usage?token=$TOKEN</code>.</li>
+        <li>Request body JSON: <code>app</code> = the app's name, <code>event</code> = <code>open</code>.</li>
+        <li>Optional: a second automation on <em>Is Closed</em> with <code>event</code> = <code>close</code>, for durations.</li></ol></div>
+      <div><h5>Android: Tasker or Automate</h5><ol>
+        <li>Tasker (paid) or Automate (free): new profile → <strong>Application</strong> → pick apps.</li>
+        <li>Task: <strong>HTTP Request</strong>, POST to <code>$M7/ingest/phone_usage?token=$TOKEN</code>.</li>
+        <li>Body: <code>{"app":"%app","event":"open"}</code> with header <code>Content-Type: application/json</code>.</li>
+        <li>Add an exit task with <code>"event":"close"</code> for durations.</li></ol></div>
+    </div>
+  </article>
+
+  <article class="src" id="src-blocking">
+    <header><h4>App blocking and patterns</h4><span class="tag up">Upload</span><span class="tag phone">Phone automation</span></header>
+    <p>How often you reach for blocked apps, and when. Mother can then show your weak hours and whether it's improving.</p>
+    <div class="plat">
+      <div><h5>Desktop</h5><ul>
+        <li>If your blocker can export history (CSV/JSON), upload it with source <code>blocking</code> each week.</li>
+        <li>No export? ActivityWatch already records blocked sites' tab titles, so Mother can count attempts from computer usage.</li></ul></div>
+      <div><h5>Mobile</h5><ul>
+        <li>Reuse the <a href="#src-phone">phone usage</a> automation on the apps you block, but POST to
+          <code>$M7/ingest/blocking?token=$TOKEN</code> with <code>{"app":"…","event":"attempt"}</code>.</li>
+        <li>On iOS this pairs well with a Shortcut that also shows a "really?" prompt before the app opens.</li></ul></div>
+    </div>
+  </article>
+
+  <article class="src" id="src-notes">
+    <header><h4>Daily notes</h4><span class="tag auto">Automatic</span></header>
+    <p>Todos, ideas and decisions from your notes; the daily report pulls them out.</p>
+    <div class="plat">
+      <div><h5>Desktop</h5><ul>
+        <li>Simplest: <em>"Rocky, take a note: …"</em> writes to today's note on M7.</li>
+        <li>Obsidian or any Markdown folder: sync it to M7 with Syncthing (<code>sudo apt install syncthing</code> on M7), then list
+          the synced path in <code>collectors.notes.dirs</code>. Edits are picked up every 30 minutes.</li></ul></div>
+      <div><h5>Mobile</h5><ul>
+        <li>Say or type <em>"Rocky, take a note…"</em> in the web app.</li>
+        <li>Syncthing has an Android app, so a phone notes folder can sync the same way. On iPhone, upload <code>.md</code> files with source <code>notes</code>.</li></ul></div>
+    </div>
+  </article>
+
+  <article class="src" id="src-voice">
+    <header><h4>Voice-to-text (Wispr Flow and others)</h4><span class="tag up">Upload</span></header>
+    <p>What you dictate elsewhere. Everything you say to the assistant itself is already stored, so this is only for other apps.</p>
+    <div class="plat">
+      <div><h5>Desktop</h5><ul>
+        <li>If the app offers a history export (CSV/TXT/JSON), export it and upload with source <code>wispr_flow</code>.</li>
+        <li>No export? Copy a day's history into a <code>.txt</code> file and upload it; each file becomes one searchable entry.</li></ul></div>
+      <div><h5>Mobile</h5><p>Same upload from the phone's browser. A future option is pointing the app's output at a synced notes folder.</p></div>
+    </div>
+  </article>
+
+  <article class="src" id="src-halffull">
+    <header><h4>Half Full</h4><span class="tag up">Upload</span></header>
+    <p>Since it's your own app, the cleanest route is for it to send events directly.</p>
+    <div class="plat">
+      <div><h5>Best: the app posts</h5>
+        <p>Have Half Full make one HTTP call per event (or a daily summary):</p>
+        <div class="code"><span class="lang">http</span><pre>POST $M7/ingest/half_full?token=$TOKEN
+Content-Type: application/json
+
+{"ts": "2026-11-01T09:30:00", "title": "Deep work block", "minutes": 90}</pre></div>
+        <p>Or ask: <em>"Jarvis, add a Half Full collector to the assistant."</em></p></div>
+      <div><h5>Quick start: export</h5><p>Export a CSV or JSON from the app and upload it with source <code>half_full</code>.
+        Columns named <code>date</code>/<code>timestamp</code> and <code>title</code>/<code>name</code> are picked up automatically.</p></div>
+    </div>
+  </article>
+
+  <article class="src" id="src-finance">
+    <header><h4>Finances</h4><span class="tag up">Upload</span></header>
+    <p>Spending by category and anything unusual, in the weekly review's <em>Money</em> section. Uploads are de-duplicated, so
+      overlapping exports are fine.</p>
+    <div class="plat">
+      <div><h5>Monthly, desktop or phone</h5><ol>
+        <li>In your bank or card website, download transactions as <strong>CSV</strong>.</li>
+        <li>Web app → <strong>⬆ Upload</strong> → source <code>finance</code> → choose the file.</li>
+        <li>Ask <em>"Mother, what did I spend on food last month?"</em></li></ol></div>
+      <div><h5>Good to know</h5><ul>
+        <li>Use the source name <code>finance</code> for every account; the weekly report reads that source.</li>
+        <li>Date, description and amount columns are detected automatically from the header row.</li></ul></div>
+    </div>
+  </article>
+
+  <article class="src" id="src-linkedin">
+    <header><h4>LinkedIn</h4><span class="tag up">Upload</span></header>
+    <p>Connections, messages and positions, from LinkedIn's official data export.</p>
+    <div class="plat">
+      <div><h5>Request the export</h5><ol>
+        <li>LinkedIn → Settings &amp; Privacy → Data privacy → <strong>Get a copy of your data</strong>.</li>
+        <li>Pick what you want (connections, messages…) → Request archive.</li>
+        <li>LinkedIn emails you a download link, usually within a day.</li></ol></div>
+      <div><h5>Upload it</h5><ol>
+        <li>Upload the <strong>.zip as is</strong> with source <code>linkedin</code>; the CSVs inside are unpacked.</li>
+        <li>The notes LinkedIn puts above the header in <code>Connections.csv</code> are skipped automatically.</li>
+        <li>Repeat every few months; duplicates are ignored.</li></ol></div>
+    </div>
+  </article>
+
+  <h3>Check that it's all flowing</h3>
+  <div class="grid3">
+    <div class="card"><h4>Ask Mother</h4><p><em>"Mother, what data do you have?"</em> lists every source, how many records,
+      and the date range.</p></div>
+    <div class="card"><h4>From the terminal</h4><p><code>python -m assistant collect</code> runs every enabled collector now and
+      prints counts or errors.</p></div>
+    <div class="card"><h4>Skynet watches</h4><p>A collector that starts failing (expired Google token, renamed folder) shows up
+      in <em>"Skynet, status"</em> and as a push.</p></div>
+  </div>
+</section>
+
+<!-- ================================================================== USE -->
+<section role="tabpanel" id="use" aria-labelledby="t-use" tabindex="0" hidden>
+  <h2>Using it</h2>
+  <p class="panel-lede">Talk to the PC, use the web app on your phone, or type in a terminal. Start a sentence with an agent's
+    name to pick who answers; otherwise the agent you just used keeps the conversation, and Rocky is the default.</p>
+
+  <h3>Things to say</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Agent</th><th>Say or type</th><th>What happens</th></tr></thead>
+    <tbody>
+      <tr class="rocky"><td><span class="pill">Rocky</span></td><td class="say">"Hey Rocky, what's the weather?"</td><td>A filler line plays instantly, then the real answer from a tool.</td></tr>
+      <tr class="rocky"><td><span class="pill">Rocky</span></td><td class="say">"Set a timer for pasta for 10 minutes"</td><td>Phone push and PC speakers when it's done.</td></tr>
+      <tr class="rocky"><td><span class="pill">Rocky</span></td><td class="say">"Movie mode" / "Launch Assetto Corsa"</td><td>Runs your whitelisted display profile or app on the PC.</td></tr>
+      <tr class="rocky"><td><span class="pill">Rocky</span></td><td class="say">"Put the morning brief on the projector"</td><td>Opens the HUD fullscreen on the projector.</td></tr>
+      <tr class="rocky"><td><span class="pill">Rocky</span></td><td class="say">"Remember that I don't eat pork"</td><td>Saved as a fact and used only when relevant.</td></tr>
+      <tr class="jarvis"><td><span class="pill">Jarvis</span></td><td class="say">"Jarvis, build me a lap-time tracker"</td><td>Asks for approval on your phone, then Claude Code builds it on a draft branch.</td></tr>
+      <tr class="jarvis"><td><span class="pill">Jarvis</span></td><td class="say">"Status update" / "List all the projects"</td><td>Reads back the status line that updates every 2 minutes.</td></tr>
+      <tr class="jarvis"><td><span class="pill">Jarvis</span></td><td class="say">"Add a weekly report type to the assistant"</td><td>Jarvis works on its own code.</td></tr>
+      <tr class="mother"><td><span class="pill">Mother</span></td><td class="say">"What's my screen time distribution this week?"</td><td>Writes SQL over everything collected.</td></tr>
+      <tr class="mother"><td><span class="pill">Mother</span></td><td class="say">"For future reports, add a section on places I went"</td><td>Edits the report template for every future run.</td></tr>
+      <tr class="skynet"><td><span class="pill">Skynet</span></td><td class="say">"Skynet, status"</td><td>Latest audit findings.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Phone</h3>
+  <ol class="steps">
+    <li><h4>Apps</h4><p>Install <strong>Tailscale</strong> (same account) and <strong>ntfy</strong>. In ntfy, subscribe to your
+      <code>NTFY_TOPIC</code>. Jarvis approvals and alarms arrive here.</p></li>
+    <li><h4>Web app</h4><p>Open <code>http://m7:8000/app</code>, enter the API token, and <em>Add to Home Screen</em>.</p></li>
+    <li><h4>Voice on the phone</h4><p>Browsers only allow the microphone over HTTPS. On M7 run
+      <code>sudo tailscale serve --bg 8000</code>, use the <code>https://m7.&lt;tailnet&gt;.ts.net/app</code> address, and set
+      <code>ASSISTANT_PUBLIC_URL</code> to it.</p></li>
+    <li><h4>Grocery tracking</h4><p>In <strong>OwnTracks</strong>, choose HTTP mode with
+      <code>https://m7.&lt;tailnet&gt;.ts.net/location?token=&lt;API token&gt;</code> and add regions for your stores. Leaving a
+      store triggers <em>"What did you buy?"</em>; tell Rocky, and you get reminders before food goes bad.</p></li>
+  </ol>
+
+  <div class="callout info"><b>Data sources</b> (Gmail, phone usage, finances, location…) have their own walkthrough in the
+    <a href="#data">Data collection</a> tab.</div>
+
+  <h3>Handy commands on M7</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Command</th><th>Does</th></tr></thead>
+    <tbody>
+      <tr><td><code>python -m assistant chat</code></td><td>Talk to the agents in the terminal</td></tr>
+      <tr><td><code>python -m assistant doctor</code></td><td>Check the PC, models, notifications and Docker</td></tr>
+      <tr><td><code>python -m assistant models --pull</code></td><td>Download missing models onto the PC now</td></tr>
+      <tr><td><code>python -m assistant nightly</code></td><td>Run Mother's nightly pipeline now</td></tr>
+      <tr><td><code>python -m assistant report daily</code></td><td>Generate a report now</td></tr>
+      <tr><td><code>python -m assistant collect gmail</code></td><td>Run one data collector</td></tr>
+      <tr><td><code>python -m assistant audit</code></td><td>Run Skynet's audit</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout info"><b>Shipping Jarvis's changes to itself:</b> review the <code>jarvis/draft-personal-assistant</code>
+    branch, merge it on GitHub, then run <code>sudo bash /opt/assistant/deploy/m7/update.sh</code>. Jarvis never pushes to main.</div>
+</section>
+
+<!-- ================================================================== HOW -->
+<section role="tabpanel" id="how" aria-labelledby="t-how" tabindex="0" hidden>
+  <h2>How it works</h2>
+  <p class="panel-lede">Every message, from any surface, goes to one service on M7. A router picks the agent, the agent uses
+    the PC's model and its tools, and the reply streams back.</p>
+
+  <h3>A voice request, end to end</h3>
+  <div class="flow" role="list">
+    <div class="node on-pc" role="listitem"><b>You speak</b><small>Mic on the PC. Whisper transcribes on the CPU.</small></div>
+    <div class="arrow" aria-hidden="true">→</div>
+    <div class="node on-m7" role="listitem"><b>Router</b><small>"Hey Jarvis…" picks the agent; otherwise sticky, else Rocky.</small></div>
+    <div class="arrow" aria-hidden="true">→</div>
+    <div class="node on-m7" role="listitem"><b>Agent</b><small>Persona, relevant facts and history, plus its tools.</small></div>
+    <div class="arrow" aria-hidden="true">⇄</div>
+    <div class="node on-pc" role="listitem"><b>Ollama</b><small>The model runs on the GPU and picks tools; tools run on M7.</small></div>
+    <div class="arrow" aria-hidden="true">→</div>
+    <div class="node on-pc" role="listitem"><b>Reply</b><small>Filler line first, then the answer in that agent's Piper voice.</small></div>
+  </div>
+  <div class="legend"><span><i style="background:var(--pc)"></i>runs on the PC</span><span><i style="background:var(--m7)"></i>runs on M7</span></div>
+
+  <h3>The agents</h3>
+  <div class="grid2">
+    <div class="card agent rocky"><b>Rocky</b>
+      <p>A local model in a tool-calling loop with 22 tools: weather, timers, notes, memory, PC display modes and apps,
+        the projector, the fridge, a sandboxed shell. A rule-based filter keeps the Project Hail Mary voice even on a small model.</p></div>
+    <div class="card agent jarvis"><b>Jarvis</b>
+      <p>Not a chatbot. A small model sorts your request into list / status / build / new / cancel, and Jarvis answers from
+        templates filled with project state. The real work is Claude Code, running in a container.</p></div>
+    <div class="card agent mother"><b>Mother</b>
+      <p>A bigger model with data tools: describe the data, run read-only SQL, run and edit reports. Builds the morning
+        brief every night while you sleep.</p></div>
+    <div class="card agent skynet"><b>Skynet</b>
+      <p>Rules, not guesses: expired approvals, disk space, backups, broken data sources, failed runs, leaked keys in
+        Jarvis's projects, missing models, and memory facts that contradict the hardware.</p></div>
+  </div>
+  <p style="color:var(--muted);font-size:15px">Want a fifth agent? Add a YAML file in <code>config/agents/</code> with a persona and a tool list. No code needed.</p>
+
+  <h3>Jarvis building something</h3>
+  <div class="flow" role="list">
+    <div class="node on-m7" role="listitem"><b>Request</b><small>"Jarvis, build…" creates a run.</small></div>
+    <div class="arrow" aria-hidden="true">→</div>
+    <div class="node on-phone" role="listitem"><b>Approve</b><small>Push with Approve / Deny. Approval opens a 20-minute lease.</small></div>
+    <div class="arrow" aria-hidden="true">→</div>
+    <div class="node on-m7" role="listitem"><b>Claude Code</b><small>Runs in a container on a <code>jarvis/draft-*</code> branch.</small></div>
+    <div class="arrow" aria-hidden="true">→</div>
+    <div class="node on-m7" role="listitem"><b>Status</b><small>Every 2 min, progress becomes one spoken sentence.</small></div>
+    <div class="arrow" aria-hidden="true">→</div>
+    <div class="node on-phone" role="listitem"><b>Report</b><small>Final summary saved in the project and pushed to you.</small></div>
+  </div>
+
+  <h3>The nightly run</h3>
+  <div class="grid2">
+    <div class="timeline">
+      <div><b>05:00</b> Collect from every data source (CPU only, on M7)</div>
+      <div><b>05:01</b> Wake the PC with Wake-on-LAN if it's asleep</div>
+      <div><b>05:02</b> Wait until the GPU is free: night window, or you've been away 10 minutes and nothing is fullscreen</div>
+      <div><b>05:05</b> Build the morning brief: schedule, email digest, weather, food expiring, project status</div>
+      <div><b>05:10</b> Pull lasting facts from yesterday's conversations, then generate the daily report</div>
+      <div><b>05:15</b> Skynet audit, database backup, push "brief ready"</div>
+    </div>
+    <div class="card"><h4>Reports you can reshape</h4>
+      <p>A report is a YAML file: sections (which data, what to say) plus standing instructions. Say "for future reports,
+        add X" and Mother edits it; old versions are kept. The defaults are a daily report and a weekly review.</p></div>
+  </div>
+
+  <h3>Memory without the creepiness</h3>
+  <div class="tiers">
+    <div class="tier"><b>Verified</b><span>Checked against telemetry, like the GPU from <code>nvidia-smi</code>.</span></div>
+    <div class="tier"><b>Explicit</b><span>You said it: "remember…", "from now on…". Trusted immediately.</span></div>
+    <div class="tier"><b>Candidate</b><span>Extracted overnight. Needs to come up 3 times before it counts.</span></div>
+    <div class="tier"><b>Quarantined</b><span>Contradicted or stale, like "you have a 3080". Never used.</span></div>
+  </div>
+  <p style="color:var(--muted);font-size:15px">Facts are only given to an agent when their topic matches your request, with a rule
+    never to mention a fact just to show it knows it. Ask for Python help and your car won't come up.</p>
+</section>
+
+<!-- ================================================================== SPLIT -->
+<section role="tabpanel" id="split" aria-labelledby="t-split" tabindex="0" hidden>
+  <h2>The split between the PC and the server</h2>
+  <p class="panel-lede">The PC has the GPU, so it does inference and nothing else heavy for the assistant. The server is cheap
+    and always on, so it does orchestration, storage, schedules and anything risky. Neither can do the other's job well.</p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 960 560" role="img" aria-labelledby="dg-title dg-desc">
+      <title id="dg-title">PC and M7 server topology</title>
+      <desc id="dg-desc">The phone reaches M7 over Tailscale. M7 calls the PC's Ollama on port 11434 and the host agent on port 8090.
+        The PC's voice client sends requests to M7 on port 8000. M7 stores data on the 5TB vault drive.</desc>
+      <defs>
+        <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" class="ah"/>
+        </marker>
+      </defs>
+
+      <!-- phone -->
+      <rect x="390" y="16" width="180" height="78" rx="12" class="box-ph" stroke-width="1.5"/>
+      <text x="480" y="44" text-anchor="middle" class="title t-ph">Phone</text>
+      <text x="480" y="64" text-anchor="middle" class="sub">web app · ntfy · OwnTracks</text>
+      <text x="480" y="81" text-anchor="middle" class="sub">anywhere, via Tailscale</text>
+
+      <!-- PC -->
+      <rect x="16" y="140" width="370" height="404" rx="14" class="box-pc" stroke-width="1.5"/>
+      <text x="36" y="172" class="title t-pc">Windows PC · the brain</text>
+      <text x="36" y="192" class="sub">i9-14900K · RTX 3070 Ti 8 GB · 64 GB RAM</text>
+      <rect x="36" y="210" width="330" height="72" rx="10" class="box-in"/>
+      <text x="52" y="235" class="item" font-weight="650">GPU: Ollama</text>
+      <text x="52" y="255" class="sub">the LLMs, and nothing else</text>
+      <text x="52" y="272" class="sub">unloads 2 min after last use</text>
+      <rect x="36" y="294" width="330" height="56" rx="10" class="box-in"/>
+      <text x="52" y="318" class="item" font-weight="650">CPU: Whisper + Piper</text>
+      <text x="52" y="338" class="sub">speech in and out, GPU stays free</text>
+      <rect x="36" y="362" width="330" height="56" rx="10" class="box-in"/>
+      <text x="52" y="386" class="item" font-weight="650">host_agent (whitelist)</text>
+      <text x="52" y="406" class="sub">display modes · listed apps · projector</text>
+      <rect x="36" y="430" width="330" height="40" rx="10" class="box-in"/>
+      <text x="52" y="455" class="item" font-weight="650">voice_client</text>
+      <rect x="36" y="482" width="330" height="40" rx="10" class="box-in"/>
+      <text x="52" y="507" class="item" font-weight="650">ActivityWatch <tspan class="sub" font-weight="400">localhost only</tspan></text>
+
+      <!-- M7 -->
+      <rect x="574" y="140" width="370" height="330" rx="14" class="box-m7" stroke-width="1.5"/>
+      <text x="594" y="172" class="title t-m7">M7 server · the body</text>
+      <text x="594" y="192" class="sub">cheap box · 6–12 GB RAM · always on</text>
+      <rect x="594" y="210" width="330" height="72" rx="10" class="box-in"/>
+      <text x="610" y="235" class="item" font-weight="650">assistant service :8000</text>
+      <text x="610" y="255" class="sub">API · router · four agents · tools</text>
+      <text x="610" y="272" class="sub">scheduler · collectors · nightly</text>
+      <rect x="594" y="294" width="330" height="56" rx="10" class="box-in"/>
+      <text x="610" y="318" class="item" font-weight="650">SQLite memory</text>
+      <text x="610" y="338" class="sub">facts · events · reports · projects</text>
+      <rect x="594" y="362" width="330" height="88" rx="10" class="box-in"/>
+      <text x="610" y="386" class="item" font-weight="650">Docker sandbox</text>
+      <text x="610" y="406" class="sub">pa-sandbox: the agents' shell</text>
+      <text x="610" y="423" class="sub">jarvis-run-*: Claude Code, one per job</text>
+      <text x="610" y="440" class="sub">sees only its work folder</text>
+
+      <!-- vault -->
+      <rect x="614" y="492" width="290" height="52" rx="10" class="box-in" stroke-dasharray="5 4"/>
+      <text x="759" y="515" text-anchor="middle" class="item" font-weight="650">5TB vault · /mnt/vault</text>
+      <text x="759" y="533" text-anchor="middle" class="sub">database · projects · notes · backups</text>
+      <line x1="759" y1="470" x2="759" y2="490" class="ln"/>
+
+      <!-- PC <-> M7 -->
+      <line x1="572" y1="246" x2="390" y2="246" class="ln" marker-end="url(#ah)"/>
+      <text x="481" y="238" text-anchor="middle" class="lab">:11434 Ollama</text>
+      <line x1="572" y1="390" x2="390" y2="390" class="ln" marker-end="url(#ah)"/>
+      <text x="481" y="382" text-anchor="middle" class="lab">:8090 host agent</text>
+      <text x="481" y="410" text-anchor="middle" class="sub">token · M7 IP only</text>
+      <line x1="388" y1="450" x2="570" y2="450" class="ln" marker-end="url(#ah)"/>
+      <text x="481" y="442" text-anchor="middle" class="lab">:8000 /chat</text>
+      <text x="481" y="470" text-anchor="middle" class="sub">voice client</text>
+      <text x="481" y="296" text-anchor="middle" class="sub">model downloads</text>
+      <text x="481" y="312" text-anchor="middle" class="sub">Wake-on-LAN</text>
+      <line x1="572" y1="320" x2="390" y2="320" class="ln" stroke-dasharray="4 4" marker-end="url(#ah)"/>
+
+      <!-- phone <-> M7 -->
+      <path d="M570 60 C 680 60, 740 90, 740 136" class="ln" marker-end="url(#ah)"/>
+      <text x="676" y="52" class="lab">Tailscale :8000</text>
+      <path d="M690 138 C 690 106, 640 84, 574 80" class="ln" stroke-dasharray="4 4" marker-end="url(#ah)"/>
+      <text x="606" y="114" class="sub">push alerts</text>
+    </svg>
+  </div>
+
+  <div class="split-cols">
+    <div class="card pcside"><h4>Windows PC</h4>
+      <p>Runs only what needs the GPU, or has to be physically on the PC.</p>
+      <dl class="kv">
+        <dt>GPU</dt><dd>Ollama models. Unload after 2 minutes, one at a time.</dd>
+        <dt>CPU</dt><dd>Whisper (speech to text), Piper (agent voices).</dd>
+        <dt>Exposes</dt><dd>Ollama :11434 and the host agent :8090, to M7 only.</dd>
+        <dt>Never</dt><dd>Runs agent code, or gives M7 a shell.</dd>
+        <dt>Off?</dt><dd>Rocky and Mother say the brain is offline. The 5 AM run wakes it.</dd>
+      </dl>
+    </div>
+    <div class="card m7side"><h4>M7 server</h4>
+      <p>Everything that's cheap, always-on, or risky.</p>
+      <dl class="kv">
+        <dt>Runs</dt><dd>The agents, tools, scheduler, collectors, web app, API.</dd>
+        <dt>Stores</dt><dd>All memory and data on the 5TB vault (SQLite).</dd>
+        <dt>Sandbox</dt><dd>Docker containers for the agents' shell and Jarvis's Claude Code.</dd>
+        <dt>Exposes</dt><dd>:8000, on Tailscale only.</dd>
+        <dt>Works without the PC</dt><dd>Reminders, push alerts, Jarvis status, Skynet, data collection.</dd>
+      </dl>
+    </div>
+  </div>
+
+  <h3>What runs where</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Component</th><th>Where</th><th>Why there</th></tr></thead>
+    <tbody>
+      <tr><td>Language models (Ollama)</td><td><span class="pill pc">PC</span></td><td>The only GPU. 8 GB of VRAM reserved for models.</td></tr>
+      <tr><td>Speech: Whisper, Piper</td><td><span class="pill pc">PC</span></td><td>On the CPU, so games and the model keep the GPU.</td></tr>
+      <tr><td>Display modes, apps, projector</td><td><span class="pill pc">PC</span></td><td>Physical screens. Only named profiles and apps, nothing arbitrary.</td></tr>
+      <tr><td>ActivityWatch</td><td><span class="pill pc">PC</span></td><td>Tracks the PC itself; M7 pulls it through the host agent.</td></tr>
+      <tr><td>Agents, router, tools</td><td><span class="pill m7">M7</span></td><td>Light work; keeps agent code off your PC.</td></tr>
+      <tr><td>Memory and collected data</td><td><span class="pill m7">M7</span></td><td>The 5TB vault; your PC's drives stay unreachable.</td></tr>
+      <tr><td>Claude Code and shell sandbox</td><td><span class="pill m7">M7</span></td><td>A bad command only breaks a container.</td></tr>
+      <tr><td>Schedules, nightly run, audits</td><td><span class="pill m7">M7</span></td><td>Always on, even while the PC sleeps.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Ports</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Port</th><th>On</th><th>Reachable from</th><th>What</th></tr></thead>
+    <tbody>
+      <tr><td><code>8000</code></td><td><span class="pill m7">M7</span></td><td>Tailscale only</td><td>Assistant API, phone web app, projector HUD</td></tr>
+      <tr><td><code>11434</code></td><td><span class="pill pc">PC</span></td><td>M7 only (firewall)</td><td>Ollama</td></tr>
+      <tr><td><code>8090</code></td><td><span class="pill pc">PC</span></td><td>M7 only (firewall + token)</td><td>Host agent</td></tr>
+      <tr><td><code>5600</code></td><td><span class="pill pc">PC</span></td><td>The PC itself</td><td>ActivityWatch</td></tr>
+      <tr><td><code>8080</code></td><td><span class="pill m7">M7</span></td><td>Optional</td><td>Self-hosted ntfy</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+</main>
+
+<footer class="wrap">
+  Full details: <a href="docs/SETUP.md">docs/SETUP.md</a> · <a href="docs/ARCHITECTURE.md">docs/ARCHITECTURE.md</a> ·
+  <a href="README.md">README.md</a>
+</footer>
+
+<script>
+(function () {
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('[role="tab"]'));
+  var ids = tabs.map(function (t) { return t.getAttribute('aria-controls'); });
+
+  function select(id, focus, push) {
+    if (ids.indexOf(id) < 0) id = ids[0];
+    tabs.forEach(function (t) {
+      var on = t.getAttribute('aria-controls') === id;
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+      t.tabIndex = on ? 0 : -1;
+      document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+      if (on && focus) t.focus();
+      if (on) t.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    });
+    if (push && location.hash !== '#' + id) history.replaceState(null, '', '#' + id);
+  }
+
+  tabs.forEach(function (t, i) {
+    t.addEventListener('click', function () {
+      select(t.getAttribute('aria-controls'), false, true);
+      var bar = document.querySelector('.tabbar');
+      if (bar.getBoundingClientRect().top <= 0) window.scrollTo({ top: bar.offsetTop, behavior: 'smooth' });
+    });
+    t.addEventListener('keydown', function (e) {
+      var j = null;
+      if (e.key === 'ArrowRight') j = (i + 1) % tabs.length;
+      else if (e.key === 'ArrowLeft') j = (i - 1 + tabs.length) % tabs.length;
+      else if (e.key === 'Home') j = 0;
+      else if (e.key === 'End') j = tabs.length - 1;
+      if (j !== null) { e.preventDefault(); select(tabs[j].getAttribute('aria-controls'), true, true); }
+    });
+  });
+  // #server / #data select a tab; #src-gmail etc. select the tab that contains it, then scroll there
+  function route() {
+    var id = decodeURIComponent(location.hash.slice(1));
+    if (ids.indexOf(id) >= 0 || !id) { select(id, false, false); return; }
+    var el = document.getElementById(id), panel = el && el.closest('[role="tabpanel"]');
+    select(panel ? panel.id : ids[0], false, false);
+    if (el) requestAnimationFrame(function () { el.scrollIntoView({ block: 'start' }); });
+  }
+  window.addEventListener('hashchange', route);
+  route();
+
+  // copy buttons on code blocks
+  document.querySelectorAll('.code').forEach(function (block) {
+    var btn = document.createElement('button');
+    btn.className = 'copy'; btn.type = 'button'; btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var pre = block.querySelector('pre').cloneNode(true);
+      pre.querySelectorAll('.c').forEach(function (c) { c.remove(); });   // drop comments
+      var text = pre.textContent.split('\n').map(function (l) { return l.replace(/\s+$/, ''); }).join('\n').trim();
+      function done(ok) { btn.textContent = ok ? 'Copied' : 'Select + copy'; setTimeout(function () { btn.textContent = 'Copy'; }, 1500); }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(false); });
+      } else {
+        try {
+          var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+          done(document.execCommand('copy')); ta.remove();
+        } catch (e) { done(false); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+</script>
+</body>
+</html>

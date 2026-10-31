@@ -14,6 +14,9 @@ stores all memory on the 5TB vault, collects data overnight, and is the agents' 
 Models download themselves: M7 pulls whatever Ollama models the agents are configured for onto
 the PC, and `pc/download_models.py` fetches the voices and Whisper.
 
+**Visual guide → [README.html](README.html)**: open it in a browser (tabs for server setup, PC setup,
+data collection, usage, how it works, and the PC/server split).
+
 **Start here → [docs/SETUP.md](docs/SETUP.md)** (step-by-step for the PC, M7 and phone).
 How it fits together → [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 

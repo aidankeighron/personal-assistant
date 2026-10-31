@@ -108,3 +108,37 @@ def test_api(rt):
         assert c.post("/approvals/nope/approve").json() == {"error": "unknown approval"}
         assert c.get("/approvals/nope/approve").status_code == 405  # link previews can't approve
         assert "required" in c.get("/models", headers=h).json()
+
+
+def test_upload_exports(rt):
+    import io
+    import zipfile
+    app = create_app(rt, start_scheduler=False)
+    h = {"Authorization": "Bearer test-token"}
+    with TestClient(app) as c:
+        # plain bank CSV -> finance events right away
+        r = c.post("/upload/Finance?filename=oct.csv", content=b"Date,Description,Amount\n2026-10-02,Kroger,41.10\n",
+                   headers=h)
+        assert r.json() == {"source": "finance", "files": ["oct.csv"], "ingested": 1}
+
+        # LinkedIn-style export: notes above the header, inside a zip with junk + a path-escape attempt
+        connections = ("Notes:\n\"When exporting your connection data, you may notice that some of the email addresses "
+                       "are missing.\"\n\nFirst Name,Last Name,URL,Email Address,Company,Position,Connected On\n"
+                       "Ada,Lovelace,https://linkedin.com/in/ada,,Analytical Engines,Engineer,02 Oct 2026\n")
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w") as z:
+            z.writestr("Basic_LinkedInDataExport/Connections.csv", connections)
+            z.writestr("../../escape.csv", "a,b\n1,2\n")
+            z.writestr("malware.exe", b"MZ")
+        r = c.post("/upload/linkedin?filename=export.zip", content=buf.getvalue(), headers=h)
+        assert r.status_code == 200 and sorted(r.json()["files"]) == ["Connections.csv", "escape.csv"]
+        row = rt.db.one("SELECT title, ts FROM events WHERE source='linkedin' AND title='Ada Lovelace'")
+        assert row is not None                        # header found under the notes
+        assert not (rt.settings.data_dir.parent / "escape.csv").exists()
+        assert not list(rt.settings.inbox_dir.rglob("*.exe"))
+
+        assert c.post("/upload/x?filename=a.exe", content=b"MZ", headers=h).status_code == 400
+        assert c.post("/upload/x?filename=a.csv", content=b"", headers=h).status_code == 400
+        assert c.post("/upload/x?filename=a.csv", content=b"a\n1\n").status_code == 401
+        src = c.get("/sources", headers=h).json()
+        assert {s["source"] for s in src["sources"]} >= {"finance", "linkedin"}

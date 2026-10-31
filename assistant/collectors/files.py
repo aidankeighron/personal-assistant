@@ -4,9 +4,13 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import io
 import json
+import re
 import shutil
 import time
+import zipfile
+from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
@@ -39,7 +43,10 @@ def _parse_ts(v) -> float | None:
 
 def row_to_event(source: str, row: dict, fallback_ts: float) -> tuple[float, str, str]:
     ts = next((t for t in (_parse_ts(row.get(k)) for k in TS_KEYS) if t), None) or fallback_ts
-    title = next((str(row[k]) for k in TITLE_KEYS if row.get(k)), source)
+    title = next((str(row[k]) for k in TITLE_KEYS if row.get(k)), None)
+    if title is None:  # no obvious title column: use the first couple of values ("Ada Lovelace")
+        vals = [str(v).strip() for v in row.values() if isinstance(v, (str, int, float)) and str(v).strip()]
+        title = " ".join(vals[:2]) or source
     body = " | ".join(f"{k}: {v}" for k, v in row.items() if v not in (None, "") and len(str(v)) < 500)
     return ts, title[:300], body[:4000]
 
@@ -57,11 +64,25 @@ def ingest_rows(rt, source: str, rows: list[dict], kind: str = "record", fallbac
     return n
 
 
+def _csv_rows(text: str) -> list[dict]:
+    """DictReader, but skip preamble lines some exports put above the header
+    (LinkedIn's Connections.csv starts with a few 'Notes:' lines)."""
+    rows = list(csv.reader(io.StringIO(text)))
+    head = [r for r in rows[:12] if any(c.strip() for c in r)]
+    if not head:
+        return []
+    counts = Counter(len(r) for r in head)
+    repeated = [w for w, n in counts.items() if n >= 2]   # header + data share a width; notes rarely repeat it
+    width = max(repeated) if repeated else counts.most_common(1)[0][0]
+    start = next(i for i, r in enumerate(rows) if len(r) == width and any(c.strip() for c in r))
+    header = [h.strip() for h in rows[start]]
+    return [dict(zip(header, r)) for r in rows[start + 1:] if any(c.strip() for c in r)]
+
+
 def read_rows(path: Path) -> list[dict]:
     suf = path.suffix.lower()
     if suf == ".csv":
-        with path.open(newline="", encoding="utf-8-sig") as f:
-            return list(csv.DictReader(f))
+        return _csv_rows(path.read_text(encoding="utf-8-sig", errors="replace"))
     if suf == ".jsonl":
         return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
     if suf == ".json":
@@ -75,6 +96,42 @@ def read_rows(path: Path) -> list[dict]:
     if suf in (".md", ".txt"):
         return [{"title": path.stem, "body": path.read_text(encoding="utf-8", errors="ignore")[:20000]}]
     return []
+
+
+UPLOAD_SUFFIXES = {".csv", ".json", ".jsonl", ".md", ".txt"}
+MAX_UPLOAD_BYTES = 50 * 2**20
+MAX_UNZIPPED_BYTES = 200 * 2**20
+
+
+def clean_source(name: str) -> str:
+    return re.sub(r"[^a-z0-9_-]+", "_", name.lower()).strip("_")[:40]
+
+
+def save_upload(dest_dir: Path, filename: str, data: bytes) -> list[str]:
+    """Save an uploaded export into the inbox. .zip archives (e.g. the LinkedIn export)
+    are unpacked; only data files are kept, by basename, so paths can't escape."""
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    stamp = int(time.time())
+    safe = lambda n: re.sub(r"[^A-Za-z0-9._-]+", "_", Path(n).name)  # noqa: E731
+    saved: list[str] = []
+    if Path(filename).suffix.lower() == ".zip":
+        total = 0
+        with zipfile.ZipFile(io.BytesIO(data)) as z:
+            for info in z.infolist():
+                base = Path(info.filename).name
+                if info.is_dir() or base.startswith(".") or Path(base).suffix.lower() not in UPLOAD_SUFFIXES:
+                    continue
+                total += info.file_size
+                if total > MAX_UNZIPPED_BYTES:
+                    raise ValueError("archive too large once unpacked")
+                out = dest_dir / f"{stamp}-{len(saved)}-{safe(base)}"
+                out.write_bytes(z.read(info))
+                saved.append(base)
+        return saved
+    if Path(filename).suffix.lower() not in UPLOAD_SUFFIXES:
+        raise ValueError(f"unsupported file type; use {sorted(UPLOAD_SUFFIXES | {'.zip'})}")
+    (dest_dir / f"{stamp}-{safe(filename)}").write_bytes(data)
+    return [Path(filename).name]
 
 
 @collector("inbox")

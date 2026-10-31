@@ -8,6 +8,7 @@ import hmac
 import json
 import logging
 import time
+import zipfile
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
@@ -17,7 +18,8 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Streamin
 from pydantic import BaseModel
 
 from . import jarvis_runner, models, tasks
-from .collectors.files import ingest_rows
+from .collectors import run_collectors
+from .collectors.files import MAX_UPLOAD_BYTES, clean_source, ingest_rows, save_upload
 from .host import HostUnavailable
 from .llm import LLMUnavailable
 from .orchestrator import Orchestrator
@@ -170,6 +172,39 @@ def create_app(rt: Runtime | None = None, start_scheduler: bool = True) -> FastA
         body = await request.json()
         rows = body if isinstance(body, list) else [body]
         return {"ingested": ingest_rows(rt, source, rows)}
+
+    @app.post("/upload/{source}", dependencies=[Depends(auth)])
+    async def upload(source: str, request: Request, filename: str = "upload.csv",
+                     rt: Runtime = Depends(get_rt)) -> dict:
+        """Raw file body (CSV/JSON/JSONL/MD/TXT or a .zip of them) -> inbox/<source>/ -> ingested now.
+        Used by the web app's upload button (desktop + phone)."""
+        src = clean_source(source)
+        if not src:
+            raise HTTPException(400, "bad source name")
+        body = await request.body()
+        if not body:
+            raise HTTPException(400, "empty file")
+        if len(body) > MAX_UPLOAD_BYTES:
+            raise HTTPException(413, "file too large (50 MB max)")
+        try:
+            saved = save_upload(rt.settings.inbox_dir / src, filename, body)
+        except (ValueError, zipfile.BadZipFile) as e:
+            raise HTTPException(400, str(e))
+        if not saved:
+            raise HTTPException(400, "no CSV/JSON/MD/TXT files found in the upload")
+        res = await run_collectors(rt, ["inbox"])
+        return {"source": src, "files": saved, "ingested": res.get("inbox")}
+
+    @app.get("/sources", dependencies=[Depends(auth)])
+    async def sources(rt: Runtime = Depends(get_rt)) -> dict:
+        """What has been collected so far, per source (for the web app + Data collection checks)."""
+        rows = rt.db.query("SELECT source, COUNT(*) AS events, MAX(ts) AS last FROM events GROUP BY source "
+                           "ORDER BY last DESC")
+        status = {}
+        for name in rt.settings["collectors"].get("enabled", []):
+            status[name] = {"last_ok": rt.db.kv_get(f"collector:{name}:last_ok"),
+                            "last_error": (rt.db.kv_get(f"collector:{name}:last_error") or {}).get("error")}
+        return {"sources": rows, "collectors": status}
 
     @app.post("/tasks/{name}", dependencies=[Depends(auth)])
     async def run_task(name: str, rt: Runtime = Depends(get_rt)) -> dict:

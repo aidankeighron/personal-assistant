@@ -175,7 +175,7 @@ journalctl -u assistant -f            # logs
 | Gmail / Calendar / Drive | See below, then add `gmail, gcal, drive` to `collectors.enabled` |
 | GitHub | Set `collectors.github.username` (+ `GITHUB_TOKEN` for private activity), enable `github` |
 | Daily notes | Rocky's `take_note`, or put `.md` files in `/mnt/vault/assistant/notes/` (or list a synced folder in `collectors.notes.dirs`) |
-| Finances, LinkedIn, Half Full, Wispr Flow, phone usage, browser history exports | Drop CSV/JSON/JSONL/MD into `/mnt/vault/assistant/inbox/<source>/`. Each file becomes events tagged `<source>` |
+| Finances, LinkedIn, Half Full, Wispr Flow, phone usage, browser history exports | **⬆ Upload** in the web app (PC or phone): pick a source name and a CSV/JSON/JSONL/MD/TXT file or a `.zip` export (LinkedIn's works as is). Ingested immediately. Or drop files into `/mnt/vault/assistant/inbox/<source>/` |
 | Anything that can make an HTTP call (Tasker, Shortcuts, scripts) | `POST /ingest/<source>?token=...` with a JSON object or list |
 | Location | OwnTracks (above) |
 
@@ -188,7 +188,9 @@ journalctl -u assistant -f            # logs
    `pc\.venv\Scripts\python -m assistant auth-google --client-secret client_secret.json --out token.json`
 5. Copy `token.json` to M7: `/mnt/vault/assistant/google/token.json` (owned by `assistant`).
 
-Test a collector any time: `python -m assistant collect gmail`.
+Test a collector any time: `python -m assistant collect gmail`. `GET /sources` shows record counts per
+source and each collector's last success/error. Per-platform walkthroughs (desktop + mobile) are in the
+*Data collection* tab of [README.html](../README.html).
 
 ---
 

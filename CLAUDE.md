@@ -17,6 +17,7 @@ Claude Code on this repo to extend the assistant itself, so keep this file accur
 - `config/`: settings example, agent YAMLs, default report specs.
 - `deploy/m7/`, `sandbox/`: server install, systemd, Docker.
 - `docs/`: SETUP.md (walkthrough), ARCHITECTURE.md. `docs/design/`: original design notes.
+- `README.html`: single-file visual guide (tabs). Keep it in sync with SETUP.md when setup steps change.
 - `prototypes/rocky_harness.py`: standalone model latency harness.
 
 ## Commands

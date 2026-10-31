@@ -30,10 +30,26 @@
           border-radius:12px; padding:11px 12px; font-size:16px; }
   form button { border:0; border-radius:12px; padding:0 14px; font-size:18px; background:var(--panel); color:var(--text); }
   #mic.live { background:var(--skynet); }
+  .hbtn { background:none; border:1px solid var(--line); color:var(--text); border-radius:999px; padding:4px 10px; font-size:12px; }
+  .up { padding:10px 12px; border-bottom:1px solid var(--line); display:grid; gap:8px; background:var(--panel); }
+  .up[hidden] { display:none; }
+  .up .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .up input[type=file] { flex:1; min-width:0; font-size:14px; color:var(--dim); }
+  .up small { color:var(--dim); }
+  .up button { border:0; border-radius:10px; padding:9px 14px; background:var(--jarvis); color:#000; font-weight:600; }
 </style>
 </head>
 <body>
-<header><b>Assistant</b><span class="pill" id="pc">…</span><button id="speakToggle" class="pill" style="background:none;border:0">🔊</button></header>
+<header><b>Assistant</b><button id="upToggle" class="hbtn" title="Upload a data export">⬆ Upload</button><span class="pill" id="pc">…</span><button id="speakToggle" class="pill" style="background:none;border:0">🔊</button></header>
+<div class="up" id="up" hidden>
+  <div class="row">
+    <input id="upSrc" list="srcs" placeholder="source, e.g. finance" autocomplete="off" style="flex:0 1 180px;padding:9px 10px">
+    <datalist id="srcs"><option value="finance"><option value="linkedin"><option value="half_full"><option value="phone_usage"><option value="blocking"><option value="wispr_flow"><option value="browser"><option value="notes"></datalist>
+    <input type="file" id="upFile" accept=".csv,.json,.jsonl,.md,.txt,.zip">
+    <button id="upGo" type="button">Upload</button>
+  </div>
+  <small id="upMsg">CSV, JSON, Markdown, text, or a .zip export (e.g. LinkedIn). Ingested immediately.</small>
+</div>
 <div class="agents" id="agents"></div>
 <div id="log"></div>
 <form id="f">
@@ -92,6 +108,20 @@ $('#speakToggle').onclick = () => { speakOn = !speakOn; $('#speakToggle').textCo
   b.onclick = () => { target = a==='auto'?null:a; document.querySelectorAll('.agents button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); };
   $('#agents').appendChild(b);
 });
+// Upload a data export into <data>/inbox/<source>/ (ingested right away)
+$('#upToggle').onclick = () => { $('#up').hidden = !$('#up').hidden; };
+$('#upGo').onclick = async () => {
+  const f = $('#upFile').files[0], src = ($('#upSrc').value || '').trim();
+  if (!f || !src) { $('#upMsg').textContent = 'Pick a source name and a file.'; return; }
+  $('#upMsg').textContent = 'Uploading ' + f.name + '…';
+  try {
+    const r = await fetch('/upload/' + encodeURIComponent(src) + '?filename=' + encodeURIComponent(f.name),
+      {method:'POST', headers:{'Authorization':'Bearer '+token}, body:f});
+    const d = await r.json();
+    $('#upMsg').textContent = r.ok ? `Saved ${d.files.length} file(s) to "${d.source}" · ${d.ingested} new records.`
+                                   : 'Upload failed: ' + (d.detail || r.status);
+  } catch (e) { $('#upMsg').textContent = 'Upload failed: ' + e; }
+};
 // Voice input: Web Speech API (Chrome/Edge/Android/iOS Safari). Needs HTTPS (use `tailscale serve`).
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 if (SR) {
