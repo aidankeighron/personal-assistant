@@ -77,6 +77,7 @@ def rt(tmp_path, monkeypatch):
     s = load_settings("config/settings.example.yaml")
     s.raw["data_dir"] = str(tmp_path / "data")
     s.raw["jarvis"]["projects_dir"] = str(tmp_path / "projects")
+    s.raw["jarvis"]["claude_home"] = str(tmp_path / "claude-home")   # never touch /mnt/vault from tests
     s.raw["jarvis"]["runner"] = "local"
     s.raw["notify"]["topic"] = ""
     s.raw["server"]["api_token"] = "test-token"

@@ -129,7 +129,9 @@ def test_docker_command_shape(rt):
     rt.settings.raw["jarvis"]["runner"] = "docker"
     cmd = jr.build_command(rt, rt.settings.projects_dir / "x", "do it", "sess-1", 5)
     assert cmd[:5] == ["docker", "run", "--rm", "-i", "--init"]
-    assert "--user" in cmd and "HOME=/home/agent" in cmd and "GIT_CONFIG_VALUE_0=*" in cmd
+    import os
+    assert ("--user" in cmd) == hasattr(os, "getuid")   # Linux: map the service user; Windows: Docker Desktop does
+    assert "HOME=/home/agent" in cmd and "GIT_CONFIG_VALUE_0=*" in cmd
     assert f"type=bind,source={rt.settings.projects_dir / 'x'},target=/work" in cmd
     i = cmd.index("pa-sandbox:latest")
     assert cmd[i + 1:i + 3] == ["claude", "-p"] and "do it" not in cmd   # prompt goes on stdin
