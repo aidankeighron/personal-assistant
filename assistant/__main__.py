@@ -38,7 +38,8 @@ def _rt():
 # Single-machine test mode (e.g. everything on the Windows PC before M7 exists).
 # Each (old, new) must match settings.example.yaml exactly; tests/test_local_mode.py guards this.
 LOCAL_SETTINGS = [
-    ("data_dir: /mnt/vault/assistant ", "data_dir: ./data/assistant   # LOCAL TEST MODE (relative to the repo) "),
+    ("data_dir: /mnt/vault/assistant        # on the 5TB drive. Use ./data while testing on a laptop.",
+     "data_dir: ./data/assistant             # LOCAL TEST MODE: relative to the repo (M7: /mnt/vault/assistant)"),
     ("  host: 0.0.0.0", "  host: 127.0.0.1                    # 0.0.0.0 to reach it from your phone over Tailscale"),
     ("  wake_pc_for_nightly: true", "  wake_pc_for_nightly: false        # same machine: nothing to wake"),
     ("  projects_dir: /mnt/vault/projects", "  projects_dir: ./data/projects"),
