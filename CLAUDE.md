@@ -15,7 +15,8 @@ Claude Code on this repo to extend the assistant itself, so keep this file accur
   - `web/`: phone/desktop app + projector HUD (single-file HTML, no build step)
 - `pc/`: Windows-only scripts (host agent whitelist, voice client, TTS, `download_models.py`, installer). Standalone: must not import `assistant`.
 - `config/`: settings example, agent YAMLs, default report specs.
-- `deploy/m7/`, `sandbox/`: server install, systemd, Docker.
+- `deploy/m7/`, `sandbox/`: server install, systemd, Docker. `deploy/windows/start-server.ps1`: run the
+  server on a Windows PC for testing.
 - `docs/`: SETUP.md (walkthrough), ARCHITECTURE.md. `docs/design/`: original design notes.
 - `README.html`: single-file visual guide (tabs). Keep it in sync with SETUP.md when setup steps change.
 - `prototypes/rocky_harness.py`: standalone model latency harness.
@@ -34,4 +35,7 @@ python -m venv .venv && .venv/bin/pip install -e ".[dev]"
   generic shell/exec endpoint to the host agent.
 - LLM-written SQL must go through `db.readonly_query`.
 - Keep M7 light: no heavy deps (no torch, no vector DB servers) in `assistant/`.
+- `assistant/` must also run on Windows (single-PC test mode, `init --local`): no POSIX-only calls
+  without a fallback, always `encoding="utf-8"` for file I/O, no shell tools on the host (rsync,
+  timeout...) except inside the Docker sandbox. CI runs the tests on Windows and Linux.
 - Secrets come from `.env` via `${VAR}` in settings; never commit them.

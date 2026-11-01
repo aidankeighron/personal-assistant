@@ -119,9 +119,14 @@ class Settings:
     def get(self, key: str, default: Any = None) -> Any:
         return self.raw.get(key, default)
 
+    def path(self, value: str | os.PathLike) -> Path:
+        """Settings paths: ~ expanded; relative paths (./data) are relative to the repo."""
+        p = Path(value).expanduser()
+        return p if p.is_absolute() else (REPO_ROOT / p).resolve()
+
     @property
     def data_dir(self) -> Path:
-        p = Path(self.raw["data_dir"]).expanduser()
+        p = self.path(self.raw["data_dir"])
         p.mkdir(parents=True, exist_ok=True)
         return p
 
@@ -131,7 +136,7 @@ class Settings:
 
     @property
     def projects_dir(self) -> Path:
-        p = Path(self.raw["jarvis"].get("projects_dir") or self.data_dir / "projects").expanduser()
+        p = self.path(self.raw["jarvis"].get("projects_dir") or self.data_dir / "projects")
         p.mkdir(parents=True, exist_ok=True)
         return p
 

@@ -38,7 +38,7 @@ def _creds(rt):
     creds = Credentials.from_authorized_user_file(str(tok), SCOPES)
     if creds.expired and creds.refresh_token:
         creds.refresh(Request())
-        tok.write_text(creds.to_json())
+        tok.write_text(creds.to_json(), encoding="utf-8")
     return creds
 
 
@@ -47,7 +47,7 @@ def authorize(client_secret: Path, token_out: Path) -> None:
 
     flow = InstalledAppFlow.from_client_secrets_file(str(client_secret), SCOPES)
     creds = flow.run_local_server(port=0)
-    token_out.write_text(creds.to_json())
+    token_out.write_text(creds.to_json(), encoding="utf-8")
 
 
 def _service(rt, name: str, version: str):

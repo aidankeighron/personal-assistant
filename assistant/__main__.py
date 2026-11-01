@@ -13,7 +13,8 @@
   models [--pull] [--force]   show which Ollama models the agents need; --pull downloads missing ones onto the PC
   doctor                check connectivity to PC (Ollama + host agent), notifications, docker
   auth-google           one-time Google OAuth (run on a machine with a browser)
-  init                  create config/settings.yaml + .env from the examples
+  init [--local [--docker]]   create config/settings.yaml + .env (--local: everything on one PC, for testing)
+  pair-pc               same machine: copy tokens between .env and pc/config.yaml
 """
 
 from __future__ import annotations
@@ -34,24 +35,114 @@ def _rt():
     return Runtime.create()
 
 
-def cmd_init(_args) -> None:
+# Single-machine test mode (e.g. everything on the Windows PC before M7 exists).
+# Each (old, new) must match settings.example.yaml exactly; tests/test_local_mode.py guards this.
+LOCAL_SETTINGS = [
+    ("data_dir: /mnt/vault/assistant ", "data_dir: ./data/assistant   # LOCAL TEST MODE (relative to the repo) "),
+    ("  host: 0.0.0.0", "  host: 127.0.0.1                    # 0.0.0.0 to reach it from your phone over Tailscale"),
+    ("  wake_pc_for_nightly: true", "  wake_pc_for_nightly: false        # same machine: nothing to wake"),
+    ("  projects_dir: /mnt/vault/projects", "  projects_dir: ./data/projects"),
+    ("  claude_home: /mnt/vault/assistant/claude-home", "  claude_home: ./data/assistant/claude-home"),
+]
+LOCAL_RUNNERS = [
+    ("  runner: docker                      # docker | local", "  runner: local                       # docker | local (local = Git Bash, NOT sandboxed)"),
+    ("  runner: docker                      # docker (recommended) | local", "  runner: local                       # docker (recommended) | local (uses your installed claude)"),
+]
+LOCAL_ENV = [("ASSISTANT_PUBLIC_URL=http://m7:8000", "ASSISTANT_PUBLIC_URL=http://localhost:8000"),
+             ("PC_HOST=desktop", "PC_HOST=localhost")]
+
+
+def _apply(text: str, pairs: list[tuple[str, str]]) -> str:
+    for old, new in pairs:
+        if old not in text:
+            raise ValueError(f"settings template changed; can't find {old!r}")
+        text = text.replace(old, new, 1)
+    return text
+
+
+def local_settings_text(example: str, docker: bool = False) -> str:
+    return _apply(example, LOCAL_SETTINGS + ([] if docker else LOCAL_RUNNERS))
+
+
+def new_env_text(example: str, local: bool = False) -> str:
+    text = example.replace("ASSISTANT_API_TOKEN=change-me", f"ASSISTANT_API_TOKEN={secrets.token_urlsafe(24)}")
+    text = text.replace("PC_HOST_TOKEN=change-me", f"PC_HOST_TOKEN={secrets.token_urlsafe(24)}")
+    text = text.replace("NTFY_TOPIC=", f"NTFY_TOPIC=pa-{secrets.token_hex(6)}")
+    return _apply(text, LOCAL_ENV) if local else text
+
+
+def cmd_init(args) -> None:
+    local = getattr(args, "local", False)
     cfg = REPO_ROOT / "config" / "settings.yaml"
     if not cfg.exists():
-        shutil.copy(REPO_ROOT / "config" / "settings.example.yaml", cfg)
-        print(f"created {cfg}")
+        example = (REPO_ROOT / "config" / "settings.example.yaml").read_text(encoding="utf-8")
+        cfg.write_text(local_settings_text(example, getattr(args, "docker", False)) if local else example,
+                       encoding="utf-8")
+        print(f"created {cfg}{' (local test mode: data in ./data, PC = localhost)' if local else ''}")
+    else:
+        print(f"kept existing {cfg}")
     env = REPO_ROOT / ".env"
     if not env.exists():
-        text = (REPO_ROOT / ".env.example").read_text()
-        text = text.replace("ASSISTANT_API_TOKEN=change-me", f"ASSISTANT_API_TOKEN={secrets.token_urlsafe(24)}")
-        text = text.replace("PC_HOST_TOKEN=change-me", f"PC_HOST_TOKEN={secrets.token_urlsafe(24)}")
-        text = text.replace("NTFY_TOPIC=", f"NTFY_TOPIC=pa-{secrets.token_hex(6)}")
-        env.write_text(text)
-        print(f"created {env} (tokens generated; copy PC_HOST_TOKEN into pc/config.yaml on the PC)")
+        env.write_text(new_env_text((REPO_ROOT / ".env.example").read_text(encoding="utf-8"), local), encoding="utf-8")
+        print(f"created {env} (tokens generated)")
+        if not local:
+            print("  copy PC_HOST_TOKEN into pc/config.yaml on the PC (host_agent.token)")
+    pc_cfg = REPO_ROOT / "pc" / "config.yaml"
+    if local and pc_cfg.exists():
+        cmd_pair_pc(args)
     try:
         _rt()
         print("database ready")
     except PermissionError as e:
         print(f"couldn't create the data dir ({e}). Edit data_dir in {cfg} (e.g. ./data for testing) and re-run.")
+
+
+def _set_env_line(text: str, key: str, value: str) -> str:
+    import re
+    line = f"{key}={value}"
+    if re.search(rf"^{key}=.*$", text, flags=re.M):
+        return re.sub(rf"^{key}=.*$", lambda _: line, text, count=1, flags=re.M)
+    return text.rstrip("\n") + f"\n{line}\n"
+
+
+def pair_pc_texts(env_text: str, pc_text: str, server_url: str = "http://localhost:8000") -> tuple[str, str]:
+    """Same machine: share tokens between the server's .env and pc/config.yaml. Comments are kept."""
+    import re
+
+    import yaml
+    pc = yaml.safe_load(pc_text) or {}
+    host_token = (pc.get("host_agent") or {}).get("token", "")
+    api_token = next((ln.split("=", 1)[1].strip() for ln in env_text.splitlines()
+                      if ln.startswith("ASSISTANT_API_TOKEN=")), "")
+    if not host_token or host_token == "change-me" or not api_token:
+        raise ValueError("need host_agent.token in pc/config.yaml (run pc\\install.ps1) and ASSISTANT_API_TOKEN in .env")
+    env_text = _set_env_line(env_text, "PC_HOST_TOKEN", host_token)
+    # the `server:` block in pc/config.yaml: url + api_token (first occurrences after `server:`)
+    head, sep, rest = pc_text.partition("\nserver:")
+    if not sep:
+        raise ValueError("pc/config.yaml has no `server:` section")
+    rest = re.sub(r"^(\s+url:\s*)\S+", lambda m: m.group(1) + server_url, rest, count=1, flags=re.M)
+    rest = re.sub(r"^(\s+api_token:\s*)\S+", lambda m: m.group(1) + api_token, rest, count=1, flags=re.M)
+    return env_text, head + sep + rest
+
+
+def cmd_pair_pc(_args) -> None:
+    env, pc_cfg = REPO_ROOT / ".env", REPO_ROOT / "pc" / "config.yaml"
+    if not pc_cfg.exists():
+        print(f"no {pc_cfg} yet: run pc\\install.ps1 first, then `python -m assistant pair-pc`")
+        return
+    port = load_settings_quiet()["server"]["port"]
+    new_env, new_pc = pair_pc_texts(env.read_text(encoding="utf-8"), pc_cfg.read_text(encoding="utf-8"),
+                                    f"http://localhost:{port}")
+    env.write_text(new_env, encoding="utf-8")
+    pc_cfg.write_text(new_pc, encoding="utf-8")
+    print("paired: PC_HOST_TOKEN in .env <- pc/config.yaml host_agent.token; "
+          "pc/config.yaml server.url/api_token <- this server. Restart the host agent + voice client.")
+
+
+def load_settings_quiet():
+    from .config import load_settings
+    return load_settings()
 
 
 def cmd_serve(args) -> None:
@@ -112,8 +203,16 @@ async def _doctor() -> None:
     except HostUnavailable as e:
         print(f"host agent    FAIL {e}")
     print(f"notify        {'topic ' + s['notify']['topic'] if rt.notifier.enabled else 'not configured'}")
-    print(f"docker        {'found' if shutil.which('docker') else 'MISSING'}")
-    print(f"claude (local) {'found' if shutil.which('claude') else 'not on PATH (fine if runner=docker)'}")
+    from .tools.sandbox import find_bash
+    sb, jv = s["sandbox"].get("runner", "docker"), s["jarvis"].get("runner", "docker")
+    docker_ok = bool(shutil.which("docker"))
+    print(f"docker        {'found' if docker_ok else 'MISSING'}{'' if docker_ok or 'docker' not in (sb, jv) else '  <- needed: a runner is set to docker'}")
+    if sb == "local":
+        bash = find_bash()
+        print(f"sandbox shell local (NOT sandboxed): {bash or 'NO BASH FOUND -> install Git for Windows'}")
+    if jv == "local":
+        claude = shutil.which("claude")
+        print(f"jarvis claude local: {claude or 'NOT FOUND -> npm install -g @anthropic-ai/claude-code, then `claude` to log in'}")
     agents = s.agents()
     print(f"agents        {', '.join(agents)}")
 
@@ -150,6 +249,11 @@ async def _models(pull: bool, force: bool) -> None:
 
 
 def main(argv: list[str] | None = None) -> None:
+    for stream in (sys.stdout, sys.stderr):  # never crash printing an emoji to a cp1252 console/pipe on Windows
+        try:
+            stream.reconfigure(errors="replace")
+        except (AttributeError, ValueError):
+            pass
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     p = argparse.ArgumentParser(prog="assistant", description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -180,11 +284,17 @@ def main(argv: list[str] | None = None) -> None:
     sp = sub.add_parser("auth-google")
     sp.add_argument("--client-secret", default="client_secret.json")
     sp.add_argument("--out", default="token.json")
-    sub.add_parser("init")
+    sp = sub.add_parser("init")
+    sp.add_argument("--local", action="store_true",
+                    help="single-machine test mode: data in ./data, PC = localhost (e.g. all on Windows)")
+    sp.add_argument("--docker", action="store_true", help="with --local: use Docker Desktop runners, not local ones")
+    sub.add_parser("pair-pc")
     a = p.parse_args(argv)
 
     if a.cmd == "init":
         cmd_init(a)
+    elif a.cmd == "pair-pc":
+        cmd_pair_pc(a)
     elif a.cmd == "serve":
         cmd_serve(a)
     elif a.cmd == "chat":

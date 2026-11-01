@@ -181,6 +181,9 @@
   }
   .pill.pc { --c: var(--pc); --cs: var(--pc-soft); }
   .pill.m7 { --c: var(--m7); --cs: var(--m7-soft); }
+  details.trybox { border-color: color-mix(in srgb, var(--accent) 35%, var(--border)); background: var(--accent-soft); margin: 0 0 26px; }
+  details.trybox summary { color: var(--accent); }
+  details.trybox p { margin: 0 0 10px; }
   details { border: 1px solid var(--border); border-radius: 10px; background: var(--surface); padding: 0 16px; margin: 12px 0; }
   summary { cursor: pointer; font-weight: 600; padding: 12px 0; }
   details[open] summary { border-bottom: 1px solid var(--border); margin-bottom: 10px; }
@@ -321,6 +324,21 @@
   <h2>Set up the M7 server</h2>
   <p class="panel-lede">Do the server first: the PC installer needs the server's Tailscale IP. Plan on an evening. The server
     runs Ubuntu Server, keeps everything on the 5TB drive, and runs one light Python service plus Docker for the sandbox.</p>
+
+  <details class="trybox">
+    <summary>Haven't set up M7 yet? Run the server on your Windows PC first</summary>
+    <p>The server code runs on Windows too, for testing. Everything goes in <code>.\data</code> inside the repo.
+      You need Python, Git for Windows (its bash is the agents' shell in this mode), Ollama, and optionally
+      Claude Code for Jarvis.</p>
+    <div class="code"><span class="lang">powershell</span><pre>cd C:\assistant
+Set-ExecutionPolicy -Scope Process Bypass
+.\deploy\windows\start-server.ps1        <span class="c"># add -WithDocker to use Docker Desktop containers</span></pre></div>
+    <p>It sets up a Python environment, writes single-machine settings (<code>init --local</code>), checks everything,
+      prints the web app link and starts the server. For voice and PC control, also run
+      <code>pc\install.ps1 -M7Ip 127.0.0.1</code> as admin, then <code>start-server.ps1</code> again so it pairs the tokens.</p>
+    <div class="callout"><b>Not sandboxed:</b> in this mode the agents' shell is Git Bash on your PC and Jarvis uses your own
+      <code>claude</code>. Use <code>-WithDocker</code> for container isolation, and move to M7 for the real setup.</div>
+  </details>
 
   <ol class="steps server-steps">
     <li>

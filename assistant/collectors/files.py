@@ -155,7 +155,7 @@ async def collect_inbox(rt, cfg: dict) -> int:
 @collector("notes")
 async def collect_notes(rt, cfg: dict) -> int:
     """Daily notes / voice transcripts: markdown files in <data>/notes and any extra dirs."""
-    dirs = [rt.settings.data_dir / "notes"] + [Path(d).expanduser() for d in cfg.get("dirs", [])]
+    dirs = [rt.settings.data_dir / "notes"] + [rt.settings.path(d) for d in cfg.get("dirs", [])]
     n = 0
     for d in dirs:
         if not d.exists():

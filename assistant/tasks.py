@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
+import shutil
 import sqlite3
 import subprocess
 import time
@@ -146,6 +148,13 @@ async def extract_memories(rt) -> int:
 # ---------------------------------------------------------------------------
 # Backup
 # ---------------------------------------------------------------------------
+def is_remote_target(target: str) -> bool:
+    """'user@host:/path' or 'host:path' -> rsync. 'C:\\x', '/mnt/x', '\\\\nas\\x' -> local copy."""
+    if re.match(r"^[A-Za-z]:[\\/]", target) or target.startswith(("/", "\\", ".", "~")):
+        return False
+    return bool(re.match(r"^[^/\\\s]+:", target))
+
+
 def backup(rt) -> str:
     s = rt.settings
     out_dir = s.data_dir / "backups"
@@ -164,7 +173,16 @@ def backup(rt) -> str:
     if target:
         # rsync the db snapshot + editable config (reports, hud, notes) to the target
         srcs = [p for p in (dest, s.data_dir / "reports", s.data_dir / "notes") if Path(p).exists()]
-        subprocess.run(["rsync", "-a", *map(str, srcs), target], check=True, timeout=1800)
+        if is_remote_target(target):
+            subprocess.run(["rsync", "-a", *map(str, srcs), target], check=True, timeout=1800)
+        else:  # a local folder, mounted drive or Windows share (\\nas\backups): plain copy, no rsync needed
+            out = s.path(target)
+            out.mkdir(parents=True, exist_ok=True)
+            for src in srcs:
+                if src.is_dir():
+                    shutil.copytree(src, out / src.name, dirs_exist_ok=True)
+                else:
+                    shutil.copy2(src, out / src.name)
     rt.db.kv_set("backup:last", time.time())
     return str(dest)
 

@@ -15,9 +15,9 @@ PC = Path(__file__).resolve().parent.parent / "pc"
 @pytest.fixture
 def agent(tmp_path, monkeypatch):
     cfg = tmp_path / "config.yaml"
-    cfg.write_text(
+    cfg.write_text(  # a portable no-op command (Windows has no `true`)
         "host_agent: {token: secret}\n"
-        "display_modes:\n  movie: {aliases: [bed tv], steps: [['true']]}\n"
+        f"display_modes:\n  movie: {{aliases: [bed tv], steps: [['{sys.executable}', '-c', 'pass']]}}\n"
         "apps:\n  factorio: {uri: 'steam://rungameid/427520'}\n"
     )
     monkeypatch.setenv("PC_CONFIG", str(cfg))

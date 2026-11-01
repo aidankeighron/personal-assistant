@@ -129,7 +129,8 @@ class Database:
             raise ValueError("only one statement allowed")
         if not stripped.lower().startswith(("select", "with")):
             raise ValueError("only SELECT / WITH queries allowed")
-        conn = sqlite3.connect(f"file:{self.path}?mode=ro", uri=True, timeout=10)
+        uri = Path(self.path).resolve().as_uri() + "?mode=ro"   # file:///C:/... on Windows, file:///... on Linux
+        conn = sqlite3.connect(uri, uri=True, timeout=10)
         conn.row_factory = sqlite3.Row
         try:
             cur = conn.execute(stripped)

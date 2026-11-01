@@ -24,6 +24,7 @@ import logging
 import os
 import re
 import secrets
+import shutil
 import subprocess
 import time
 from pathlib import Path
@@ -184,20 +185,28 @@ def _git(path: Path, *args: str) -> subprocess.CompletedProcess:
 
 
 def build_command(rt, proj_path: Path, prompt: str, session_id: str | None, run_id: int) -> list[str]:
+    """argv for one Claude Code run. The prompt itself is sent on stdin (see start_run): a long
+    multi-line prompt as an argument gets mangled by cmd.exe on Windows (claude.cmd shim)."""
     jc = rt.settings["jarvis"]
-    claude = ["claude", "-p", prompt, *jc.get("claude_args", [])]
+    local = jc.get("runner", "docker") != "docker"
+    exe = (shutil.which("claude") or "claude") if local else "claude"   # finds claude.cmd / claude.exe on Windows
+    claude = [exe, "-p", *jc.get("claude_args", [])]
     if session_id and jc.get("continue_sessions", True):
         claude += ["--resume", session_id]
     if jc.get("model"):
         claude += ["--model", jc["model"]]
-    if jc.get("runner", "docker") != "docker":
+    if local:
         return claude
-    claude_home = Path(jc.get("claude_home") or rt.settings.data_dir / "claude-home")
+    claude_home = rt.settings.path(jc.get("claude_home") or rt.settings.data_dir / "claude-home")
     claude_home.mkdir(parents=True, exist_ok=True)
-    cmd = ["docker", "run", "--rm", "-i", "--init", "--name", f"jarvis-run-{run_id}",
-           "--user", f"{os.getuid()}:{os.getgid()}", "-e", "HOME=/home/agent", *GIT_ENV,
-           "-v", f"{proj_path}:/work", "-v", f"{claude_home}:/home/agent", "-w", "/work",
-           "--memory", jc.get("container_memory", "3g"), "--cpus", str(jc.get("container_cpus", 2))]
+    cmd = ["docker", "run", "--rm", "-i", "--init", "--name", f"jarvis-run-{run_id}"]
+    if hasattr(os, "getuid"):  # Linux/macOS: files the container writes belong to the service user.
+        cmd += ["--user", f"{os.getuid()}:{os.getgid()}"]  # (Docker Desktop on Windows maps ownership itself)
+    cmd += ["-e", "HOME=/home/agent", *GIT_ENV,
+            # --mount, not -v: Windows paths contain a drive-letter colon that -v would misparse
+            "--mount", f"type=bind,source={proj_path},target=/work",
+            "--mount", f"type=bind,source={claude_home},target=/home/agent", "-w", "/work",
+            "--memory", jc.get("container_memory", "3g"), "--cpus", str(jc.get("container_cpus", 2))]
     for env in jc.get("pass_env", ["ANTHROPIC_API_KEY"]):
         cmd += ["-e", env]
     return cmd + [jc.get("docker_image", "pa-sandbox:latest"), *claude]
@@ -214,8 +223,8 @@ async def start_run(rt, run_id: int) -> dict:
         # keep Jarvis's own logs/reports out of the user's commits (local-only ignore)
         exclude = path / ".git" / "info" / "exclude"
         exclude.parent.mkdir(parents=True, exist_ok=True)
-        if ".jarvis/" not in (exclude.read_text() if exclude.exists() else ""):
-            with exclude.open("a") as f:
+        if ".jarvis/" not in (exclude.read_text(encoding="utf-8", errors="replace") if exclude.exists() else ""):
+            with exclude.open("a", encoding="utf-8") as f:
                 f.write("\n# Jarvis run logs and reports\n.jarvis/\n")
         cur = _git(path, "symbolic-ref", "--short", "HEAD").stdout.strip()  # works before the first commit too
         if cur != branch:
@@ -240,17 +249,33 @@ async def start_run(rt, run_id: int) -> dict:
     try:
         proc = await asyncio.create_subprocess_exec(
             *cmd, cwd=str(path), stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT,
-            stdin=asyncio.subprocess.DEVNULL)
+            stdin=asyncio.subprocess.PIPE)
     except FileNotFoundError as e:
         rt.db.execute("UPDATE runs SET status='failed', result=?, finished=? WHERE id=?",
                       (f"could not launch: {e}", time.time(), run_id))
         set_status(rt, run["project"], f"I couldn't start Claude Code: {e}.")
         return {"error": str(e)}
+    asyncio.create_task(_feed_prompt(proc, prompt))
     rt.db.execute("UPDATE runs SET status='running', pid=? WHERE id=?", (proc.pid, run_id))
     set_status(rt, run["project"], "Started working on it.")
     task = asyncio.create_task(_pump(rt, run_id, proc, log_path))
     rt.state.setdefault("jarvis_tasks", {})[run_id] = (proc, task)
     return {"status": "running", "run_id": run_id}
+
+
+async def _feed_prompt(proc: asyncio.subprocess.Process, prompt: str) -> None:
+    """`claude -p` reads the prompt from stdin; write it and close so Claude starts."""
+    assert proc.stdin is not None
+    try:
+        proc.stdin.write(prompt.encode("utf-8"))
+        await proc.stdin.drain()
+    except (BrokenPipeError, ConnectionResetError):
+        pass  # process exited before reading (e.g. failed to start); _pump reports it
+    finally:
+        try:
+            proc.stdin.close()
+        except (BrokenPipeError, ConnectionResetError):
+            pass
 
 
 def parse_stream_line(line: str) -> dict[str, Any]:

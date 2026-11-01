@@ -1,0 +1,82 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.12"]
+        include:
+          - os: ubuntu-latest
+            python: "3.11"          # oldest supported
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Tests
+        run: python -m pytest -q
+      - name: Host agent + PC scripts import (Windows)
+        if: runner.os == 'Windows'
+        working-directory: pc
+        run: |
+          python -m pip install -q psutil
+          python -c "import ast,pathlib; [ast.parse(p.read_text(encoding='utf-8')) for p in pathlib.Path('.').glob('*.py')]; print('pc scripts parse')"
+
+  windows-local-mode:
+    # The "run the M7 server on the Windows PC for testing" path, for real.
+    runs-on: windows-latest
+    needs: test
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: python -m pip install -e .
+      - name: init --local
+        run: |
+          python -m assistant init --local
+          Get-Content config\settings.yaml | Select-String "LOCAL TEST MODE|runner: local"
+          if (-not (Test-Path data\assistant\assistant.db)) { throw "database not created" }
+      - name: CLI works without the PC/LLM
+        run: |
+          python -m assistant doctor
+          python -m assistant project half-full --description "test"
+          $out = python -m assistant say "jarvis list all the projects" | Out-String
+          Write-Output $out
+          if ($out -notmatch "half full") { throw "jarvis did not answer" }
+          python -m assistant collect
+          python -m assistant audit
+          python -m assistant backup
+      - name: Server starts and answers
+        run: |
+          $p = Start-Process python -ArgumentList "-m","assistant","serve" -PassThru -RedirectStandardError server.log
+          $token = (Get-Content .env | Where-Object { $_ -like "ASSISTANT_API_TOKEN=*" }) -replace "ASSISTANT_API_TOKEN=",""
+          $h = @{ Authorization = "Bearer $token" }
+          for ($i = 0; $i -lt 30; $i++) { try { Invoke-RestMethod http://127.0.0.1:8000/health | Out-Null; break } catch { Start-Sleep 1 } }
+          Invoke-RestMethod http://127.0.0.1:8000/health
+          $r = Invoke-RestMethod -Method Post http://127.0.0.1:8000/chat -Headers $h -ContentType "application/json" -Body '{"text":"jarvis list all the projects"}'
+          if ($r.text -notmatch "half full") { throw "chat failed: $($r | ConvertTo-Json)" }
+          Set-Content bank.csv "Date,Description,Amount`n2026-10-05,Meijer,63.12"
+          $u = Invoke-RestMethod -Method Post "http://127.0.0.1:8000/upload/finance?filename=bank.csv" -Headers $h -InFile bank.csv
+          if ($u.ingested -ne 1) { throw "upload failed: $($u | ConvertTo-Json)" }
+          $q = Invoke-RestMethod http://127.0.0.1:8000/sources -Headers $h
+          $q | ConvertTo-Json -Depth 5
+          Stop-Process $p.Id
+          Get-Content server.log -Tail 20
+          if (Select-String -Path server.log -Pattern "Traceback") { throw "server logged a traceback" }

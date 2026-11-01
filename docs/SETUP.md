@@ -13,6 +13,43 @@ Budget an evening for PC + M7, and another for Google/ActivityWatch/phone extras
 
 ---
 
+## Part 0 (optional): Try everything on one Windows PC first
+
+The M7 server code runs on Windows too, so you can test the whole thing on your main PC before
+M7 exists. Data goes in `.\data` (git-ignored); nothing is installed system-wide.
+
+**Needs:** Python 3.11+, Git for Windows (its bash is the agents' shell in this mode), Ollama, and
+optionally Claude Code (`npm install -g @anthropic-ai/claude-code`, then run `claude` once to log in)
+for Jarvis.
+
+1. Server, in a normal PowerShell from the repo root:
+   ```powershell
+   Set-ExecutionPolicy -Scope Process Bypass
+   .\deploy\windows\start-server.ps1
+   ```
+   This makes `.venv`, runs `python -m assistant init --local` (data in `.\data`, PC = localhost,
+   local runners), runs `doctor`, prints the web app link, and starts the server. Leave it running.
+2. PC side (voice, display modes, app launching): in an **admin** PowerShell,
+   `cd pc; .\install.ps1 -M7Ip 127.0.0.1`. Then re-run `start-server.ps1` (or
+   `python -m assistant pair-pc`), which copies the tokens between `.env` and `pc\config.yaml` for you.
+3. Talk to it: open the printed `http://localhost:8000/app?token=…` link, run
+   `.venv\Scripts\python.exe -m assistant chat`, or `pc\.venv\Scripts\python.exe pc\voice_client.py`.
+
+Differences from the real setup:
+
+| | One-PC test mode | M7 |
+|---|---|---|
+| Agents' shell (`sandbox_shell`) | Git Bash on your PC, **not sandboxed** | Docker container |
+| Jarvis's Claude Code | your installed `claude` | Docker container, after phone approval |
+| Data | `.\data` in the repo | `/mnt/vault` (5TB) |
+| Server reachable from | this PC only (`host: 127.0.0.1`) | Tailscale |
+
+Want the containers too? Install Docker Desktop and run `start-server.ps1 -WithDocker`, which builds
+the sandbox image and uses it for both. When M7 is ready, set it up as below; nothing from test mode
+needs to carry over (copy `.\data\assistant` to `/mnt/vault/assistant` if you want to keep the data).
+
+---
+
 ## Part 1: Windows PC
 
 ### PC-1. Install the basics

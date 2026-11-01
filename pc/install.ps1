@@ -1,6 +1,7 @@
 # Windows PC setup for the assistant. Run in an *elevated* PowerShell from the repo's pc\ folder:
 #   Set-ExecutionPolicy -Scope Process Bypass
 #   .\install.ps1 -M7Ip 100.x.y.z            # M7's Tailscale (or LAN) IP
+#   .\install.ps1 -M7Ip 127.0.0.1            # testing with the server on this same PC (deploy\windows\start-server.ps1)
 # Optional: -SkipModels  -NoAutostart
 param(
     [Parameter(Mandatory = $true)][string]$M7Ip,
@@ -21,6 +22,10 @@ if (-not (Test-Path config.yaml)) {
     Copy-Item config.example.yaml config.yaml
     $tok = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 32 | ForEach-Object { [char]$_ })
     (Get-Content config.yaml) -replace '  token: change-me', "  token: $tok" | Set-Content config.yaml
+    if ($M7Ip -in @("127.0.0.1", "localhost")) {   # single-machine test mode: the server runs on this PC
+        (Get-Content config.yaml) -replace '  url: http://m7:8000', '  url: http://localhost:8000' | Set-Content config.yaml
+        Write-Host "Same-machine mode: server.url = http://localhost:8000. Run 'python -m assistant pair-pc' in the repo to share tokens." -ForegroundColor Yellow
+    }
     Write-Host "Created pc\config.yaml. host_agent.token = $tok  -> put this in M7 .env as PC_HOST_TOKEN" -ForegroundColor Yellow
 }
 
