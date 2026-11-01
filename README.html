@@ -475,6 +475,8 @@ python prototypes\rocky_harness.py</pre></div>
         <li>Turn off Fast Startup in Power Options</li>
         <li><code>getmac /v</code> → wired adapter's MAC into M7's <code>PC_MAC</code>. Works on the home network, not over Tailscale.</li>
       </ul>
+      <div class="callout"><b>Sleep, don't shut down.</b> Ollama and the host agent run in your logged-in session. A shut-down
+        PC woken at 5 AM stops at the login screen with neither running, so there'd be no model for the morning brief.</div>
     </li>
     <li>
       <h4>Test</h4>

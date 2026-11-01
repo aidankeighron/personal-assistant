@@ -87,10 +87,15 @@ async def call(ctx: ToolContext, name: str, args: dict | str | None, allowed: li
         except json.JSONDecodeError:
             args = {}
     args = {k: v for k, v in (args or {}).items() if k in t.parameters}
+    from ..host import HostUnavailable
+    from ..llm import LLMUnavailable
     try:
         res = t.func(ctx, **args)
         if inspect.isawaitable(res):
             res = await res
+    except (HostUnavailable, LLMUnavailable, ValueError, FileNotFoundError) as e:  # expected: tell the model
+        log.warning("tool %s: %s", name, e)
+        return json.dumps({"error": str(e)})
     except Exception as e:  # tools must never crash a turn
         log.exception("tool %s failed", name)
         return json.dumps({"error": f"{type(e).__name__}: {e}"})

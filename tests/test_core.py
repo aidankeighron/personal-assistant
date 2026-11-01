@@ -137,3 +137,14 @@ async def test_gpu_gate(rt):
     assert (await heavy_gpu_allowed(rt.host, gate, noon))[0]
     rt.host.idle_info = {"idle_seconds": 900, "fullscreen": True, "foreground": "Assetto Corsa"}
     assert not (await heavy_gpu_allowed(rt.host, gate, noon))[0]
+
+
+async def test_tool_errors_are_clear_for_the_model(rt):
+    from assistant.host import HostRefused
+    from assistant.tools import ToolContext, call
+
+    async def refuse(mode):
+        raise HostRefused("PC refused: unknown mode; have ['movie']")
+    rt.host.display = refuse
+    out = await call(ToolContext(rt, "rocky", "c"), "set_display_mode", {"mode": "nuke"}, ["set_display_mode"])
+    assert out == '{"error": "PC refused: unknown mode; have [\'movie\']"}'

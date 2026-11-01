@@ -8,7 +8,7 @@ import logging
 import sqlite3
 import subprocess
 import time
-from datetime import datetime, timedelta
+from datetime import timedelta
 from pathlib import Path
 
 from . import jarvis_runner, reports
@@ -52,7 +52,7 @@ async def wait_for_gpu(rt, max_wait: int = 3600, poll: int = 60) -> tuple[bool, 
     deadline = time.time() + max_wait
     reason = ""
     while True:
-        ok, reason = await heavy_gpu_allowed(rt.host, rt.settings["gpu_gate"])
+        ok, reason = await heavy_gpu_allowed(rt.host, rt.settings["gpu_gate"], now_local(rt.settings))
         if ok or time.time() > deadline:
             return ok, reason
         await asyncio.sleep(poll)
@@ -150,7 +150,7 @@ def backup(rt) -> str:
     s = rt.settings
     out_dir = s.data_dir / "backups"
     out_dir.mkdir(exist_ok=True)
-    dest = out_dir / f"assistant-{datetime.now():%Y%m%d-%H%M}.db"
+    dest = out_dir / f"assistant-{now_local(s):%Y%m%d-%H%M}.db"
     src = sqlite3.connect(str(s.db_path))
     dst = sqlite3.connect(str(dest))
     with dst:
@@ -178,7 +178,10 @@ async def nightly(rt) -> dict:
     result["collect"] = await run_collectors(rt)
     if rt.settings["gpu_gate"].get("wake_pc_for_nightly", True):
         result["pc_awake"] = await ensure_pc_awake(rt)
-    ok, reason = await wait_for_gpu(rt, max_wait=int(rt.settings["gpu_gate"].get("nightly_max_wait", 5400)))
+    if result.get("pc_awake") is False:
+        ok, reason = False, "PC didn't come online (asleep with no Wake-on-LAN, or shut down)"
+    else:
+        ok, reason = await wait_for_gpu(rt, max_wait=int(rt.settings["gpu_gate"].get("nightly_max_wait", 5400)))
     result["gpu"] = reason
     if ok:
         try:

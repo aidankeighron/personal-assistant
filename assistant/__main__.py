@@ -78,7 +78,7 @@ async def _chat_loop() -> None:
 
     while True:
         try:
-            text = input("\nyou > ")
+            text = await asyncio.to_thread(input, "\nyou > ")
         except (EOFError, KeyboardInterrupt):
             print()
             return

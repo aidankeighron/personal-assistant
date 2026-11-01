@@ -211,12 +211,23 @@ async def start_run(rt, run_id: int) -> dict:
     path = Path(proj["path"])
     branch = rt.settings["jarvis"].get("branch_prefix", "jarvis/draft-") + slug(run["project"])
     if (path / ".git").exists():
-        cur = _git(path, "rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
+        # keep Jarvis's own logs/reports out of the user's commits (local-only ignore)
+        exclude = path / ".git" / "info" / "exclude"
+        exclude.parent.mkdir(parents=True, exist_ok=True)
+        if ".jarvis/" not in (exclude.read_text() if exclude.exists() else ""):
+            with exclude.open("a") as f:
+                f.write("\n# Jarvis run logs and reports\n.jarvis/\n")
+        cur = _git(path, "symbolic-ref", "--short", "HEAD").stdout.strip()  # works before the first commit too
         if cur != branch:
-            if _git(path, "rev-parse", "--verify", branch).returncode == 0:
-                _git(path, "checkout", branch)
-            else:
-                _git(path, "checkout", "-b", branch)
+            exists = _git(path, "rev-parse", "--verify", "--quiet", branch).returncode == 0
+            sw = _git(path, "checkout", branch) if exists else _git(path, "checkout", "-b", branch)
+            if sw.returncode != 0:
+                # never let Claude commit onto main/whatever happens to be checked out
+                msg = f"couldn't switch to {branch}: {sw.stderr.strip()[:200]}"
+                rt.db.execute("UPDATE runs SET status='failed', result=?, finished=? WHERE id=?",
+                              (msg, time.time(), run_id))
+                set_status(rt, run["project"], f"I didn't start: {msg}. Commit or stash your changes first.")
+                return {"error": msg}
     prev = rt.db.one(
         "SELECT session_id FROM runs WHERE project=? AND session_id IS NOT NULL AND id<>? ORDER BY id DESC LIMIT 1",
         (run["project"], run_id))
@@ -373,7 +384,7 @@ async def cancel(rt, project: str) -> dict:
         proc, _ = entry
         proc.kill()
         if rt.settings["jarvis"].get("runner", "docker") == "docker":
-            subprocess.run(["docker", "kill", f"jarvis-run-{run['id']}"], capture_output=True)
+            await asyncio.to_thread(subprocess.run, ["docker", "kill", f"jarvis-run-{run['id']}"], capture_output=True)
     rt.db.execute("UPDATE runs SET status='cancelled', finished=? WHERE id=?", (time.time(), run["id"]))
     set_status(rt, project, "Cancelled at your request.")
     return {"status": "cancelled", "run_id": run["id"]}

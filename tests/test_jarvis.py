@@ -133,3 +133,29 @@ def test_docker_command_shape(rt):
     i = cmd.index("pa-sandbox:latest")
     assert cmd[i + 1:i + 4] == ["claude", "-p", "do it"]
     assert cmd[-2:] == ["--resume", "sess-1"]
+
+
+async def test_draft_branch_exclude_and_refuses_dirty_switch(rt, tmp_path, monkeypatch):
+    import subprocess
+    use_fake_claude(rt, tmp_path, monkeypatch)
+    rt.settings.raw["jarvis"]["approval_required"] = False
+    p = jr.create_project(rt, "fresh")
+    res = await jr.request_run(rt, "fresh", "build it")
+    await wait_done(rt, res["run_id"])
+    path = tmp_path / "projects" / "fresh"
+    git = lambda *a: subprocess.run(["git", *a], cwd=path, capture_output=True, text=True)  # noqa: E731
+    assert git("symbolic-ref", "--short", "HEAD").stdout.strip() == "jarvis/draft-fresh"   # even with no commits
+    assert ".jarvis/" in (path / ".git" / "info" / "exclude").read_text()
+    assert ".jarvis" not in git("status", "--porcelain").stdout                              # logs never committed
+
+    # user is on main with a change that conflicts with the draft branch -> Jarvis refuses to start
+    env = ["-c", "user.name=t", "-c", "user.email=t@t"]
+    git(*env, "add", "-A"); git(*env, "commit", "-qm", "draft")
+    git("checkout", "-q", "-b", "main"); (path / "app.py").write_text("print('main')\n")
+    git(*env, "commit", "-qam", "main change"); (path / "app.py").write_text("print('dirty')\n")
+    res = await jr.request_run(rt, "fresh", "more")
+    run = rt.db.one("SELECT status, result FROM runs WHERE id=?", (res["run_id"],))
+    assert run["status"] == "failed" and "couldn't switch" in run["result"]
+    assert git("symbolic-ref", "--short", "HEAD").stdout.strip() == "main"
+    assert "stash" in jr.get_project(rt, "fresh")["status_text"]
+    _ = p

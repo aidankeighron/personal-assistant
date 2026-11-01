@@ -76,7 +76,7 @@ def _csv_rows(text: str) -> list[dict]:
     width = max(repeated) if repeated else counts.most_common(1)[0][0]
     start = next(i for i, r in enumerate(rows) if len(r) == width and any(c.strip() for c in r))
     header = [h.strip() for h in rows[start]]
-    return [dict(zip(header, r)) for r in rows[start + 1:] if any(c.strip() for c in r)]
+    return [dict(zip(header, r, strict=False)) for r in rows[start + 1:] if any(c.strip() for c in r)]
 
 
 def read_rows(path: Path) -> list[dict]:

@@ -75,6 +75,9 @@ Try `/tier 1`, `/tier 2`, and compare first-response latency. Put the winners in
 3. Disable Fast Startup (Control Panel → Power Options → Choose what the power buttons do).
 4. `getmac /v` → put the wired adapter's MAC in M7 `.env` as `PC_MAC`.
    WOL only works on the **LAN** (wired is most reliable), not over Tailscale.
+5. **Put the PC to Sleep at night, don't shut it down.** Ollama and the host agent run in your
+   logged-in session; a shut-down PC woken by WOL stops at the login screen with neither running,
+   so the 5 AM run would find no model (it then skips the brief but still collects, audits and backs up).
 
 ### PC-6. Test
 ```powershell

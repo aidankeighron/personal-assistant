@@ -13,7 +13,11 @@ import httpx
 
 
 class HostUnavailable(RuntimeError):
-    pass
+    """The PC's host agent couldn't be reached (asleep, not logged in, offline)."""
+
+
+class HostRefused(HostUnavailable):
+    """The host agent answered but said no (not whitelisted, unknown mode, bad token)."""
 
 
 class HostClient:
@@ -30,7 +34,13 @@ class HostClient:
                 r.raise_for_status()
                 return r.json()
         except httpx.HTTPStatusError as e:
-            raise HostUnavailable(f"host agent {e.response.status_code}: {e.response.text[:200]}") from e
+            try:
+                detail = e.response.json().get("detail", e.response.text)
+            except ValueError:
+                detail = e.response.text
+            if e.response.status_code == 401:
+                detail = "bad host agent token (PC_HOST_TOKEN on M7 must match host_agent.token on the PC)"
+            raise HostRefused(f"PC refused: {str(detail)[:200]}") from e
         except httpx.HTTPError as e:
             raise HostUnavailable(f"host agent unreachable: {e}") from e
 
@@ -91,11 +101,16 @@ async def heavy_gpu_allowed(host: HostClient, gate: dict, now: datetime | None =
     """Decide whether background GPU work may run right now.
 
     Allowed when inside the night window, or the user has been idle long enough and
-    nothing is fullscreen (games / movies).
+    nothing is fullscreen (games / movies). Pass `now` in the *user's* timezone
+    (tasks.wait_for_gpu does); M7's clock is often UTC.
     """
     try:
         info = await host.idle()
     except HostUnavailable as e:
+        # Nobody is gaming at 5 AM on a PC whose host agent isn't up yet (e.g. just woken):
+        # inside the night window that's fine; outside it we can't tell, so don't.
+        if in_window(gate.get("night_window", ""), now):
+            return True, f"night window (host agent unreachable: {e})"
         return False, f"PC unreachable ({e})"
     if info.get("fullscreen"):
         return False, f"fullscreen app running ({info.get('foreground', '?')})"

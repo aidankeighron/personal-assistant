@@ -142,3 +142,58 @@ def test_upload_exports(rt):
         assert c.post("/upload/x?filename=a.csv", content=b"a\n1\n").status_code == 401
         src = c.get("/sources", headers=h).json()
         assert {s["source"] for s in src["sources"]} >= {"finance", "linkedin"}
+
+
+async def test_nightly_end_to_end(rt, monkeypatch):
+    import assistant.tools.general as g
+
+    async def fake_weather(ctx, city=""):
+        return {"temp_f": 41, "condition": "clear"}
+    monkeypatch.setattr(g, "get_weather", fake_weather)
+    rt.settings.raw["collectors"]["enabled"] = ["inbox", "notes"]
+    rt.settings.raw["gpu_gate"]["night_window"] = "00:00-23:59"
+    rt.db.add_event("gcal", "calendar_event", time.time() + 120, "Standup", "")
+    res = await tasks.nightly(rt)
+    assert res["pc_awake"] is True and res["gpu"] == "night window"
+    assert res["brief"] and res["reports"] and res["backup"].endswith(".db")
+    assert rt.notifier.sent[-1]["title"] == "Mother: morning brief ready"
+    assert rt.db.kv_get("nightly:last")["collect"] == {"inbox": 0, "notes": 0}
+
+
+async def test_nightly_pc_never_wakes(rt):
+    from assistant.llm import LLMUnavailable
+
+    async def down(*a, **k):
+        raise LLMUnavailable("asleep")
+    rt.llm.models = down
+    rt.settings.raw["collectors"]["enabled"] = ["inbox"]
+    rt.settings.raw["pc"]["mac_address"] = ""
+    t0 = time.time()
+    res = await tasks.nightly(rt)
+    assert time.time() - t0 < 10                       # doesn't sit waiting for a GPU that isn't there
+    assert res["pc_awake"] is False and "didn't come online" in res["gpu"]
+    assert "brief" not in res and res["backup"].endswith(".db")   # still audits + backs up
+
+
+async def test_gpu_gate_host_down(rt):
+    from datetime import datetime
+    from assistant.host import HostUnavailable, heavy_gpu_allowed
+
+    async def down():
+        raise HostUnavailable("not logged in yet")
+    rt.host.idle = down
+    gate = rt.settings["gpu_gate"]
+    assert (await heavy_gpu_allowed(rt.host, gate, datetime(2026, 1, 1, 5, 0)))[0]       # night window
+    assert not (await heavy_gpu_allowed(rt.host, gate, datetime(2026, 1, 1, 14, 0)))[0]  # daytime
+
+
+async def test_wait_for_gpu_uses_user_timezone(rt, monkeypatch):
+    """M7 often runs in UTC; the night window is in the user's timezone."""
+    seen = {}
+
+    async def spy(host, gate, now=None):
+        seen["now"] = now
+        return True, "ok"
+    monkeypatch.setattr(tasks, "heavy_gpu_allowed", spy)
+    await tasks.wait_for_gpu(rt)
+    assert seen["now"].tzinfo is not None and str(seen["now"].tzinfo) == rt.settings["timezone"]
