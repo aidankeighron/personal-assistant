@@ -4,7 +4,8 @@ __pycache__/
 .env
 config/settings.yaml
 pc/config.yaml
-data/
+# the server's local data folder only (not e.g. mobile/.../data/)
+/data/
 *.db
 *.db-wal
 *.db-shm
