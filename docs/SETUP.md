@@ -207,6 +207,23 @@ journalctl -u assistant -f            # logs
 
 ---
 
+## Part 3b: The phone app (PA Tracker, Android)
+
+Tracks which apps and websites you have open (and when) plus your location every 5 minutes, shows
+charts and raw data on the phone, and syncs to the server. Full guide: [mobile/README.md](../mobile/README.md).
+
+1. On the phone: GitHub → Releases → **mobile-latest** → download and open the `.apk`.
+2. In the app's Settings: server URL (`http://m7:8000` over Tailscale), API token, **Test connection**.
+3. Fix each permission in the checklist (Usage access, Accessibility, Location "all the time",
+   Notifications, Battery). On Android 13+: App info → ⋮ → *Allow restricted settings* before the
+   accessibility toggle works.
+4. **Start collecting.** The data lands as `phone_usage`, `phone_web` and `location` events, so
+   "Mother, how much was I on my phone this week?" works, and the daily report has phone sections.
+
+New builds appear on that release every night at midnight and on every merge to `main`.
+
+---
+
 ## Part 4: Data sources
 
 | Source | How |
@@ -217,6 +234,7 @@ journalctl -u assistant -f            # logs
 | Daily notes | Rocky's `take_note`, or put `.md` files in `/mnt/vault/assistant/notes/` (or list a synced folder in `collectors.notes.dirs`) |
 | Finances, LinkedIn, Half Full, Wispr Flow, phone usage, browser history exports | **⬆ Upload** in the web app (PC or phone): pick a source name and a CSV/JSON/JSONL/MD/TXT file or a `.zip` export (LinkedIn's works as is). Ingested immediately. Or drop files into `/mnt/vault/assistant/inbox/<source>/` |
 | Anything that can make an HTTP call (Tasker, Shortcuts, scripts) | `POST /ingest/<source>?token=...` with a JSON object or list |
+| Phone apps, websites, location | The PA Tracker app (Part 3b). OwnTracks still works for store regions. |
 | Location | OwnTracks (above) |
 
 **Google setup (once):**

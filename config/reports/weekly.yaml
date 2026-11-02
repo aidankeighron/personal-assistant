@@ -17,6 +17,14 @@ sections:
       FROM events WHERE source='activitywatch' AND kind='window' AND ts >= :since
       GROUP BY day ORDER BY day
     prompt: Screen time per day; note the trend.
+  - title: Phone by Day
+    sql: >
+      SELECT date(ts,'unixepoch','localtime') AS day,
+             ROUND(SUM(CAST(json_extract(data,'$.duration_s') AS REAL))/3600.0, 1) AS hours,
+             COUNT(*) AS sessions
+      FROM events WHERE source='phone_usage' AND ts >= :since
+      GROUP BY day ORDER BY day
+    prompt: Phone screen time per day and the trend versus the PC.
   - title: Code Shipped
     sources: [github]
     prompt: What got built this week, by repo.

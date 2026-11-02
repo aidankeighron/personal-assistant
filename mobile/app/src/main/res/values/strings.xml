@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">PA Tracker</string>
+    <string name="accessibility_label">PA Tracker: websites</string>
+    <string name="accessibility_description">Reads the address bar of your browser (Chrome, Firefox, Brave, Edge, Samsung Internet, …) to log which websites you visit and when. Nothing else on screen is read or stored, and data only goes to your own server.</string>
+</resources>

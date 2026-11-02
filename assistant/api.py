@@ -17,7 +17,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
-from . import jarvis_runner, models, tasks
+from . import jarvis_runner, mobile, models, tasks
 from .collectors import run_collectors
 from .collectors.files import MAX_UPLOAD_BYTES, clean_source, ingest_rows, save_upload
 from .host import HostUnavailable
@@ -172,6 +172,14 @@ def create_app(rt: Runtime | None = None, start_scheduler: bool = True) -> FastA
         body = await request.json()
         rows = body if isinstance(body, list) else [body]
         return {"ingested": ingest_rows(rt, source, rows)}
+
+    @app.post("/mobile/sync", dependencies=[Depends(auth)])
+    async def mobile_sync(request: Request, rt: Runtime = Depends(get_rt)) -> dict:
+        """Batches from the Android app (mobile/). Idempotent: re-sent rows are ignored."""
+        body = await request.json()
+        if not isinstance(body, dict):
+            raise HTTPException(400, "expected a JSON object")
+        return {"accepted": mobile.ingest(rt, body), "server_time": time.time()}
 
     @app.post("/upload/{source}", dependencies=[Depends(auth)])
     async def upload(source: str, request: Request, filename: str = "upload.csv",

@@ -18,6 +18,19 @@ sections:
       FROM events WHERE source='activitywatch' AND kind='window' AND ts >= :since
       GROUP BY title ORDER BY hours DESC LIMIT 12
     prompt: Break down time by app. Call out focus vs. distraction and the total.
+  - title: Phone
+    sql: >
+      SELECT title AS app, ROUND(SUM(CAST(json_extract(data,'$.duration_s') AS REAL))/3600.0, 2) AS hours,
+             COUNT(*) AS sessions
+      FROM events WHERE source='phone_usage' AND ts >= :since
+      GROUP BY title ORDER BY hours DESC LIMIT 12
+    prompt: Phone screen time by app and number of sessions. Call out the biggest time sinks.
+  - title: Phone Web
+    sql: >
+      SELECT title AS site, ROUND(SUM(CAST(json_extract(data,'$.duration_s') AS REAL))/60.0, 1) AS minutes
+      FROM events WHERE source='phone_web' AND ts >= :since
+      GROUP BY title ORDER BY minutes DESC LIMIT 12
+    prompt: Websites visited on the phone, by minutes.
   - title: Code
     sources: [github]
     prompt: Summarize commits, PRs and reviews by repo.

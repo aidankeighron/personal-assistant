@@ -84,6 +84,16 @@ notification, and Skynet raises a finding if models stay missing. On the PC, `pc
 fetches Piper voices (from config), the Whisper model and (on first install) the Ollama list from
 `GET /models`. Everything is idempotent.
 
+## Phone app (`mobile/`)
+
+Native Android (Kotlin/Compose). A foreground location service ticks every 5 minutes: location fix,
+app sessions from `UsageStatsManager`, then sync; an accessibility service logs browser address-bar
+URLs as web visits; WorkManager repeats usage + sync every 15 minutes as a fallback. Data lives in
+local SQLite (charts + raw data on the phone, 90 days) and is pushed to `POST /mobile/sync`
+(`assistant/mobile.py`) as `phone_usage`, `phone_web` and `location` events with content-derived
+uids (re-sends never duplicate). Not connected to the agents on the phone; Mother sees the data on
+the server. CI builds the APK on every push and nightly at midnight, and publishes `mobile-latest`.
+
 ## Ports
 
 | Port | Where | What |

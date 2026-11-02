@@ -14,6 +14,9 @@ Claude Code on this repo to extend the assistant itself, so keep this file accur
   - `models.py`: which Ollama models are required; auto-pulls missing ones onto the PC
   - `web/`: phone/desktop app + projector HUD (single-file HTML, no build step)
 - `pc/`: Windows-only scripts (host agent whitelist, voice client, TTS, `download_models.py`, installer). Standalone: must not import `assistant`.
+- `mobile/`: Android data-collection app (Kotlin/Compose): apps, websites, location every 5 min,
+  charts + raw data, syncs to `POST /mobile/sync` (`assistant/mobile.py`). Read `mobile/CLAUDE.md`
+  before working on it.
 - `config/`: settings example, agent YAMLs, default report specs.
 - `deploy/m7/`, `sandbox/`: server install, systemd, Docker. `deploy/windows/start-server.ps1`: run the
   server on a Windows PC for testing.
@@ -37,5 +40,6 @@ python -m venv .venv && .venv/bin/pip install -e ".[dev]"
 - Keep M7 light: no heavy deps (no torch, no vector DB servers) in `assistant/`.
 - `assistant/` must also run on Windows (single-PC test mode, `init --local`): no POSIX-only calls
   without a fallback, always `encoding="utf-8"` for file I/O, no shell tools on the host (rsync,
-  timeout...) except inside the Docker sandbox. CI runs the tests on Windows and Linux.
+  timeout...) except inside the Docker sandbox. CI runs the tests on Windows and Linux, plus the
+  Android build; it also runs nightly at midnight and publishes the APK to the `mobile-latest` release.
 - Secrets come from `.env` via `${VAR}` in settings; never commit them.

@@ -532,8 +532,9 @@ python prototypes\rocky_harness.py</pre></div>
       <tr><td><a href="#src-browser">Browser usage</a></td><td><span class="tag auto">Automatic</span>AW extension</td><td>via phone usage</td><td><code>activitywatch</code> (web)</td></tr>
       <tr><td><a href="#src-google">Gmail · Calendar · Drive</a></td><td colspan="2"><span class="tag auto">Automatic</span>one Google sign-in covers every device</td><td><code>gmail</code> <code>gcal</code> <code>drive</code></td></tr>
       <tr><td><a href="#src-github">GitHub</a></td><td colspan="2"><span class="tag auto">Automatic</span>username + optional token</td><td><code>github</code></td></tr>
-      <tr><td><a href="#src-location">Location</a></td><td><span class="tag na">n/a</span></td><td><span class="tag phone">Phone</span>OwnTracks</td><td><code>location</code></td></tr>
-      <tr><td><a href="#src-phone">Phone usage</a></td><td><span class="tag na">n/a</span></td><td><span class="tag phone">Phone</span>Shortcuts / Tasker</td><td><code>phone_usage</code></td></tr>
+      <tr><td><a href="#src-location">Location</a></td><td><span class="tag na">n/a</span></td><td><span class="tag auto">Automatic</span>PA Tracker app (or OwnTracks)</td><td><code>location</code></td></tr>
+      <tr><td><a href="#src-phone">Phone usage</a></td><td><span class="tag na">n/a</span></td><td><span class="tag auto">Automatic</span>PA Tracker app</td><td><code>phone_usage</code></td></tr>
+      <tr><td>Phone websites</td><td><span class="tag na">n/a</span></td><td><span class="tag auto">Automatic</span>PA Tracker app</td><td><code>phone_web</code></td></tr>
       <tr><td><a href="#src-blocking">App blocking</a></td><td><span class="tag up">Upload</span>blocker logs</td><td><span class="tag phone">Phone</span>Shortcuts / Tasker</td><td><code>blocking</code></td></tr>
       <tr><td><a href="#src-notes">Daily notes</a></td><td><span class="tag auto">Automatic</span>synced folder</td><td>"Rocky, take a note…"</td><td><code>notes</code></td></tr>
       <tr><td><a href="#src-voice">Voice-to-text (Wispr Flow)</a></td><td><span class="tag up">Upload</span>history export</td><td><span class="tag up">Upload</span></td><td><code>wispr_flow</code></td></tr>
@@ -543,8 +544,11 @@ python prototypes\rocky_harness.py</pre></div>
     </tbody>
   </table></div>
 
-  <div class="callout info"><b>Coming later:</b> a dedicated mobile app for data collection, so phone usage, location and
-    quick uploads don't need OwnTracks, Shortcuts or Tasker. Until then, the routes below work today.</div>
+  <div class="callout info"><b>On Android, use the PA Tracker app</b> (<code>mobile/</code>): it records which apps and
+    websites you have open and when, plus your location every 5 minutes, shows charts and raw data on the phone, and syncs
+    to the server. Install it from the <code>mobile-latest</code> GitHub release (rebuilt every night at midnight), then follow
+    its Settings checklist. Details in <a href="mobile/README.md">mobile/README.md</a>. The OwnTracks / Tasker routes below
+    still work if you prefer them.</div>
 
   <h3>Before you start</h3>
   <ul>
@@ -639,8 +643,8 @@ pc\.venv\Scripts\python -m assistant auth-google --client-secret client_secret.j
 
   <article class="src" id="src-phone">
     <header><h4>Phone usage</h4><span class="tag phone">Phone automation</span></header>
-    <p>Screen Time (iOS) and Digital Wellbeing (Android) have no export or API, so the phone reports app opens itself. Pick the
-      apps you care about; you don't need all of them.</p>
+    <p><strong>Easiest: the PA Tracker app</strong> logs every app session automatically (Usage access permission) and
+      syncs it. The manual automations below are an alternative if you don't want to install it.</p>
     <div class="plat">
       <div><h5>iPhone: Shortcuts</h5><ol>
         <li>Shortcuts → Automation → <strong>+</strong> → <strong>App</strong> → choose apps → <em>Is Opened</em> → <em>Run Immediately</em>.</li>

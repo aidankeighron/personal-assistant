@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Your server is reached over Tailscale (http://m7:8000 or a 100.x address), which is already
+     encrypted end to end, so plain HTTP is allowed. https://…ts.net works too. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
