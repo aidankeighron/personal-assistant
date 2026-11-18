@@ -3,6 +3,10 @@
 This repo is a personal multi-agent assistant (Rocky, Jarvis, Mother, Skynet). Jarvis runs
 Claude Code on this repo to extend the assistant itself, so keep this file accurate.
 
+**Picking up the work? Read `docs/HANDOFF.md` first**: current status, what has and hasn't been
+verified, decisions not to undo, cloud-container gotchas, and the prioritized backlog. Update it
+when you finish a chunk of work.
+
 ## Layout
 - `assistant/`: M7 server package (Python 3.11+, FastAPI, SQLite). Entry: `python -m assistant`.
   - `orchestrator.py` routes every message → `agents/` (rocky, jarvis, mother, skynet, generic llm)
@@ -20,7 +24,7 @@ Claude Code on this repo to extend the assistant itself, so keep this file accur
 - `config/`: settings example, agent YAMLs, default report specs.
 - `deploy/m7/`, `sandbox/`: server install, systemd, Docker. `deploy/windows/start-server.ps1`: run the
   server on a Windows PC for testing.
-- `docs/`: SETUP.md (walkthrough), ARCHITECTURE.md. `docs/design/`: original design notes.
+- `docs/`: HANDOFF.md (status + backlog), SETUP.md (walkthrough), ARCHITECTURE.md. `docs/design/`: original design notes.
 - `README.html`: single-file visual guide (tabs). Keep it in sync with SETUP.md when setup steps change.
 - `prototypes/rocky_harness.py`: standalone model latency harness.
 

@@ -18,6 +18,8 @@ the PC, and `pc/download_models.py` fetches the voices and Whisper.
 data collection, usage, how it works, and the PC/server split).
 
 **Start here → [docs/SETUP.md](docs/SETUP.md)** (step-by-step for the PC, M7 and phone).
+Project status, what's verified, and the backlog for whoever works on it next →
+[docs/HANDOFF.md](docs/HANDOFF.md).
 How it fits together → [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Repo map
